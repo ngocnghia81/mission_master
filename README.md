@@ -20,7 +20,7 @@ lib/
 │   ├── home/               # Màn hình chính
 │   ├── projects/           # Quản lý dự án
 │   ├── tasks/              # Quản lý nhiệm vụ
-│   ├── evaluations/        # Đánh giá nhân viên
+│   ├── evaluations/        # Đánh giá nhiệm vụ
 │   ├── profile/            # Hồ sơ người dùng
 │   └── settings/           # Cài đặt ứng dụng
 │
@@ -62,10 +62,10 @@ lib/
 -   **models/**: Chứa các model dữ liệu
     -   `user.dart`: Model người dùng
     -   `project.dart`: Model dự án
+    -   `project_membership.dart`: Model thành viên dự án
     -   `task.dart`: Model nhiệm vụ
     -   `evaluation.dart`: Model đánh giá
     -   `penalty.dart`: Model phạt
-    -   `reward.dart`: Model thưởng
 
 ### 2. Thư mục features/
 
@@ -151,19 +151,17 @@ Lưu trữ thông tin về các dự án.
 -   **end_date**: Ngày kết thúc
 -   **status**: Trạng thái ('not_started', 'in_progress', 'completed', 'cancelled')
 -   **manager_id**: ID của quản lý dự án (khóa ngoại đến users)
--   **team_leader_id**: ID của nhóm trưởng (khóa ngoại đến users)
+-   **leader_id**: ID của nhóm trưởng (khóa ngoại đến users)
 -   **created_at**: Thời gian tạo
 -   **updated_at**: Thời gian cập nhật gần nhất
 
-### 3. Bảng user_projects
+### 3. Bảng project_memberships
 
 Quản lý mối quan hệ giữa người dùng và dự án.
 
 -   **id**: Khóa chính, tự động tăng
 -   **user_id**: ID người dùng (khóa ngoại đến users)
 -   **project_id**: ID dự án (khóa ngoại đến projects)
--   **role**: Vai trò trong dự án ('manager', 'team_leader', 'employee')
--   **is_team_leader**: Xác định nhân viên có phải là nhóm trưởng không (1/0)
 -   **created_at**: Thời gian thêm vào dự án
 
 ### 4. Bảng tasks
@@ -179,24 +177,13 @@ Lưu trữ thông tin về các nhiệm vụ.
 -   **due_date**: Deadline
 -   **completed_date**: Ngày hoàn thành
 -   **project_id**: ID dự án (khóa ngoại đến projects)
--   **assigned_to**: ID người được giao (khóa ngoại đến users)
+-   **user_project_id**: ID liên kết người dùng-dự án (khóa ngoại đến project_memberships)
 -   **assigned_by**: ID người giao việc (khóa ngoại đến users)
 -   **is_penalty_applied**: Đã áp dụng phạt (1/0)
 -   **created_at**: Thời gian tạo
 -   **updated_at**: Thời gian cập nhật gần nhất
 
-### 5. Bảng task_history
-
-Theo dõi lịch sử thay đổi của các nhiệm vụ.
-
--   **id**: Khóa chính, tự động tăng
--   **task_id**: ID nhiệm vụ (khóa ngoại đến tasks)
--   **status**: Trạng thái mới
--   **updated_by**: ID người cập nhật (khóa ngoại đến users)
--   **notes**: Ghi chú về sự thay đổi
--   **created_at**: Thời gian cập nhật
-
-### 6. Bảng comments
+### 5. Bảng comments
 
 Lưu trữ các bình luận trên nhiệm vụ.
 
@@ -207,7 +194,7 @@ Lưu trữ các bình luận trên nhiệm vụ.
 -   **created_at**: Thời gian tạo
 -   **updated_at**: Thời gian cập nhật gần nhất
 
-### 7. Bảng attachments
+### 6. Bảng attachments
 
 Lưu trữ thông tin về các file đính kèm.
 
@@ -216,51 +203,32 @@ Lưu trữ thông tin về các file đính kèm.
 -   **file_path**: Đường dẫn đến file
 -   **file_type**: Loại file
 -   **task_id**: ID nhiệm vụ (khóa ngoại đến tasks)
--   **uploaded_by**: ID người tải lên (khóa ngoại đến users)
 -   **created_at**: Thời gian tải lên
 
-### 8. Bảng evaluations
+### 7. Bảng evaluations
 
-Lưu trữ đánh giá nhân viên khi kết thúc dự án.
+Lưu trữ đánh giá nhiệm vụ.
 
 -   **id**: Khóa chính, tự động tăng
--   **user_id**: ID người được đánh giá (khóa ngoại đến users)
--   **project_id**: ID dự án (khóa ngoại đến projects)
+-   **task_id**: ID nhiệm vụ (khóa ngoại đến tasks)
 -   **attitude_score**: Điểm thái độ làm việc (0-5)
 -   **quality_score**: Điểm chất lượng công việc (0-5)
--   **overdue_days**: Tổng số ngày trễ hạn
--   **on_time_rate**: Tỷ lệ hoàn thành đúng hạn (0-1)
--   **completed_tasks**: Số nhiệm vụ đã hoàn thành
 -   **evaluator_id**: ID người đánh giá (khóa ngoại đến users)
 -   **notes**: Ghi chú đánh giá
 -   **created_at**: Thời gian đánh giá
 
-### 9. Bảng penalties
+### 8. Bảng penalties
 
 Lưu trữ thông tin về các hình phạt.
 
 -   **id**: Khóa chính, tự động tăng
--   **user_id**: ID người bị phạt (khóa ngoại đến users)
 -   **task_id**: ID nhiệm vụ liên quan (khóa ngoại đến tasks)
 -   **amount**: Số tiền phạt
 -   **reason**: Lý do phạt
--   **applied_by**: ID người áp dụng phạt (khóa ngoại đến users)
 -   **is_paid**: Đã thanh toán (1/0)
 -   **created_at**: Thời gian tạo
 
-### 10. Bảng rewards
-
-Lưu trữ thông tin về các phần thưởng.
-
--   **id**: Khóa chính, tự động tăng
--   **user_id**: ID người được thưởng (khóa ngoại đến users)
--   **project_id**: ID dự án liên quan (khóa ngoại đến projects)
--   **amount**: Số tiền thưởng
--   **reason**: Lý do thưởng
--   **granted_by**: ID người cấp thưởng (khóa ngoại đến users)
--   **created_at**: Thời gian tạo
-
-### 11. Bảng notifications
+### 9. Bảng notifications
 
 Lưu trữ thông báo cho người dùng.
 
@@ -269,9 +237,33 @@ Lưu trữ thông báo cho người dùng.
 -   **title**: Tiêu đề thông báo
 -   **message**: Nội dung thông báo
 -   **type**: Loại thông báo (task, project, evaluation, etc.)
--   **is_read**: Đã đọc (1/0)
 -   **related_id**: ID đối tượng liên quan
+-   **is_read**: Đã đọc (1/0)
 -   **created_at**: Thời gian tạo
+
+## Mối quan hệ chính trong Database
+
+1. **Quản lý Dự án**:
+
+    - User (manager) quản lý nhiều Project
+    - User tham gia nhiều Project thông qua bảng project_memberships
+    - Project có một leader được chỉ định
+
+2. **Quản lý Nhiệm vụ**:
+
+    - Project chứa nhiều Task
+    - Task được gán cho thành viên dự án (qua user_project_id)
+    - User giao nhiệm vụ (assigned_by)
+
+3. **Tương tác Nhiệm vụ**:
+
+    - Task có nhiều Comment
+    - Task có nhiều Attachment
+    - Task có thể dẫn đến Penalty nếu trễ hạn
+
+4. **Đánh giá và Thông báo**:
+    - Task được đánh giá qua bảng Evaluation
+    - User nhận nhiều Notification
 
 ## Vai trò và quyền hạn
 
@@ -285,20 +277,20 @@ Lưu trữ thông báo cho người dùng.
 
 -   Tạo và quản lý dự án
 -   Thêm nhân viên vào dự án
--   Chỉ định nhóm trưởng từ các nhân viên trong dự án
+-   Chỉ định nhóm trưởng cho dự án
 -   Xem báo cáo và thống kê của dự án
 
 ### 3. Nhân viên
 
 -   Nhận và thực hiện nhiệm vụ
--   Có thể được chỉ định làm nhóm trưởng trong một dự án
--   Nếu là nhóm trưởng: phân công nhiệm vụ, thiết lập deadline, đánh giá nhân viên
+-   Có thể được chỉ định làm nhóm trưởng trong dự án
+-   Nếu là nhóm trưởng: phân công nhiệm vụ, thiết lập deadline, đánh giá nhiệm vụ
 -   Cập nhật trạng thái công việc
 -   Trao đổi qua bình luận
 -   Xem lịch trình và deadline
 
 ## Lưu ý
 
--   Mỗi nhân viên có thể là nhóm trưởng trong một số dự án và là thành viên thông thường trong các dự án khác
--   Trạng thái nhóm trưởng được xác định trong bảng user_projects thông qua trường is_team_leader
--   Quản lý có thể thay đổi nhóm trưởng của dự án bất cứ lúc nào
+-   Nhóm trưởng được chỉ định trực tiếp trong bảng projects qua trường leader_id
+-   Thành viên dự án được quản lý qua bảng project_memberships
+-   Nhiệm vụ được gắn với thành viên dự án thông qua trường user_project_id trong bảng tasks

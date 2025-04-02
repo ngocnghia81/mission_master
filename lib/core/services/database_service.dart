@@ -54,22 +54,20 @@ class DatabaseService {
         end_date TEXT NOT NULL,
         status TEXT NOT NULL CHECK (status IN ('not_started', 'in_progress', 'completed', 'cancelled')),
         manager_id INTEGER NOT NULL,
-        team_leader_id INTEGER,
+        leader_id INTEGER,
         ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
         ${DatabaseConfig.columnUpdatedAt} TEXT NOT NULL,
         FOREIGN KEY (manager_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (team_leader_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
+        FOREIGN KEY (leader_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
       )
     ''');
 
-    // Create User-Project Relationship table
+    // Create Project Memberships table
     await db.execute('''
-      CREATE TABLE ${DatabaseConfig.tableUserProjects} (
+      CREATE TABLE ${DatabaseConfig.tableProjectMemberships} (
         ${DatabaseConfig.columnId} INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         project_id INTEGER NOT NULL,
-        role TEXT NOT NULL CHECK (role IN ('manager', 'team_leader', 'employee')),
-        is_team_leader BOOLEAN NOT NULL DEFAULT 0,
         ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId}),
         FOREIGN KEY (project_id) REFERENCES ${DatabaseConfig.tableProjects} (${DatabaseConfig.columnId}),
@@ -89,28 +87,14 @@ class DatabaseService {
         due_date TEXT NOT NULL,
         completed_date TEXT,
         project_id INTEGER NOT NULL,
-        assigned_to INTEGER,
+        user_project_id INTEGER,
         assigned_by INTEGER NOT NULL,
         is_penalty_applied BOOLEAN DEFAULT 0,
         ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
         ${DatabaseConfig.columnUpdatedAt} TEXT NOT NULL,
         FOREIGN KEY (project_id) REFERENCES ${DatabaseConfig.tableProjects} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (assigned_to) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId}),
+        FOREIGN KEY (user_project_id) REFERENCES ${DatabaseConfig.tableProjectMemberships} (${DatabaseConfig.columnId}),
         FOREIGN KEY (assigned_by) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
-      )
-    ''');
-
-    // Create Task History table
-    await db.execute('''
-      CREATE TABLE ${DatabaseConfig.tableTaskHistory} (
-        ${DatabaseConfig.columnId} INTEGER PRIMARY KEY AUTOINCREMENT,
-        task_id INTEGER NOT NULL,
-        status TEXT NOT NULL,
-        updated_by INTEGER NOT NULL,
-        notes TEXT,
-        ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
-        FOREIGN KEY (task_id) REFERENCES ${DatabaseConfig.tableTasks} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (updated_by) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
       )
     ''');
 
@@ -136,10 +120,8 @@ class DatabaseService {
         file_path TEXT NOT NULL,
         file_type TEXT NOT NULL,
         task_id INTEGER NOT NULL,
-        uploaded_by INTEGER NOT NULL,
         ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
-        FOREIGN KEY (task_id) REFERENCES ${DatabaseConfig.tableTasks} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (uploaded_by) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
+        FOREIGN KEY (task_id) REFERENCES ${DatabaseConfig.tableTasks} (${DatabaseConfig.columnId})
       )
     ''');
 
@@ -147,20 +129,14 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE ${DatabaseConfig.tableEvaluations} (
         ${DatabaseConfig.columnId} INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        project_id INTEGER NOT NULL,
+        task_id INTEGER NOT NULL,
         attitude_score INTEGER NOT NULL CHECK (attitude_score BETWEEN 0 AND 5),
         quality_score INTEGER NOT NULL CHECK (quality_score BETWEEN 0 AND 5),
-        overdue_days INTEGER NOT NULL DEFAULT 0,
-        on_time_rate REAL NOT NULL DEFAULT 0,
-        completed_tasks INTEGER NOT NULL DEFAULT 0,
         evaluator_id INTEGER NOT NULL,
         notes TEXT,
         ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (project_id) REFERENCES ${DatabaseConfig.tableProjects} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (evaluator_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId}),
-        UNIQUE(user_id, project_id)
+        FOREIGN KEY (task_id) REFERENCES ${DatabaseConfig.tableTasks} (${DatabaseConfig.columnId}),
+        FOREIGN KEY (evaluator_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
       )
     ''');
 
@@ -168,32 +144,12 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE ${DatabaseConfig.tablePenalties} (
         ${DatabaseConfig.columnId} INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
         task_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         reason TEXT NOT NULL,
-        applied_by INTEGER NOT NULL,
         is_paid BOOLEAN NOT NULL DEFAULT 0,
         ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (task_id) REFERENCES ${DatabaseConfig.tableTasks} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (applied_by) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
-      )
-    ''');
-
-    // Create Rewards table
-    await db.execute('''
-      CREATE TABLE ${DatabaseConfig.tableRewards} (
-        ${DatabaseConfig.columnId} INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        project_id INTEGER NOT NULL,
-        amount REAL NOT NULL,
-        reason TEXT NOT NULL,
-        granted_by INTEGER NOT NULL,
-        ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (project_id) REFERENCES ${DatabaseConfig.tableProjects} (${DatabaseConfig.columnId}),
-        FOREIGN KEY (granted_by) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
+        FOREIGN KEY (task_id) REFERENCES ${DatabaseConfig.tableTasks} (${DatabaseConfig.columnId})
       )
     ''');
 
@@ -205,8 +161,8 @@ class DatabaseService {
         title TEXT NOT NULL,
         message TEXT NOT NULL,
         type TEXT NOT NULL,
-        is_read BOOLEAN NOT NULL DEFAULT 0,
         related_id INTEGER,
+        is_read BOOLEAN NOT NULL DEFAULT 0,
         ${DatabaseConfig.columnCreatedAt} TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES ${DatabaseConfig.tableUsers} (${DatabaseConfig.columnId})
       )

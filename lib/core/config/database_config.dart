@@ -5,16 +5,13 @@ class DatabaseConfig {
   // Table names
   static const String tableUsers = 'users';
   static const String tableProjects = 'projects';
+  static const String tableProjectMemberships = 'project_memberships';
   static const String tableTasks = 'tasks';
-  static const String tableTeams = 'teams';
   static const String tableComments = 'comments';
   static const String tableAttachments = 'attachments';
   static const String tableEvaluations = 'evaluations';
-  static const String tableUserProjects = 'user_projects';
   static const String tableNotifications = 'notifications';
   static const String tablePenalties = 'penalties';
-  static const String tableTaskHistory = 'task_history';
-  static const String tableRewards = 'rewards';
 
   // Common column names
   static const String columnId = 'id';
