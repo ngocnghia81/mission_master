@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'core/services/database_service.dart';
-import 'database_test_screen.dart';
+import 'features/tasks/task_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,13 +11,7 @@ void main() async {
   databaseFactory = databaseFactoryFfi;
 
   // Khởi tạo database sau khi đã thiết lập databaseFactory
-  try {
-    await DatabaseService.instance.database;
-    print('Database initialized successfully');
-  } catch (e) {
-    print('Error initializing database: $e');
-  }
-
+  await DatabaseService.instance.database;
   runApp(const MyApp());
 }
 
@@ -48,7 +42,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF022E39)),
         useMaterial3: true,
       ),
-      home: const DatabaseTestScreen(),
+      home: const TaskListScreen(),
     );
   }
 }

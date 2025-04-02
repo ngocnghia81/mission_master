@@ -1,6 +1,6 @@
 # Mission Master
 
-Ứng dụng quản lý công việc nhóm được xây dựng bằng Flutter.
+Ứng dụng quản lý dự án và nhiệm vụ cho công ty và làm việc nhóm, được xây dựng bằng Flutter.
 
 ## Cấu trúc thư mục
 
@@ -18,7 +18,9 @@ lib/
 ├── features/               # Các tính năng của ứng dụng
 │   ├── auth/               # Xác thực người dùng
 │   ├── home/               # Màn hình chính
-│   ├── tasks/              # Quản lý công việc
+│   ├── projects/           # Quản lý dự án
+│   ├── tasks/              # Quản lý nhiệm vụ
+│   ├── evaluations/        # Đánh giá nhân viên
 │   ├── profile/            # Hồ sơ người dùng
 │   └── settings/           # Cài đặt ứng dụng
 │
@@ -59,9 +61,11 @@ lib/
 
 -   **models/**: Chứa các model dữ liệu
     -   `user.dart`: Model người dùng
-    -   `task.dart`: Model công việc
     -   `project.dart`: Model dự án
-    -   `team.dart`: Model nhóm
+    -   `task.dart`: Model nhiệm vụ
+    -   `evaluation.dart`: Model đánh giá
+    -   `penalty.dart`: Model phạt
+    -   `reward.dart`: Model thưởng
 
 ### 2. Thư mục features/
 
@@ -115,13 +119,186 @@ features/tasks/
 -   Accent: `#C0424E`
 -   Highlight: `#D94B58`
 
-## Database
+## Cấu trúc Database
 
-Ứng dụng sử dụng SQLite với các bảng chính:
+Ứng dụng sử dụng SQLite với các bảng sau:
 
--   Users: Quản lý người dùng
--   Projects: Quản lý dự án
--   Tasks: Quản lý công việc
--   Teams: Quản lý nhóm
--   Comments: Quản lý bình luận
--   Attachments: Quản lý file đính kèm
+### 1. Bảng users
+
+Lưu trữ thông tin người dùng với các vai trò khác nhau.
+
+-   **id**: Khóa chính, tự động tăng
+-   **email**: Email đăng nhập, duy nhất
+-   **username**: Tên đăng nhập, duy nhất
+-   **password**: Mật khẩu (đã mã hóa)
+-   **full_name**: Họ tên đầy đủ
+-   **role**: Vai trò ('admin', 'manager', 'employee')
+-   **avatar**: URL ảnh đại diện
+-   **phone**: Số điện thoại
+-   **is_active**: Trạng thái hoạt động (1/0)
+-   **created_at**: Thời gian tạo
+-   **updated_at**: Thời gian cập nhật gần nhất
+
+### 2. Bảng projects
+
+Lưu trữ thông tin về các dự án.
+
+-   **id**: Khóa chính, tự động tăng
+-   **name**: Tên dự án
+-   **logo**: URL logo dự án
+-   **description**: Mô tả dự án
+-   **start_date**: Ngày bắt đầu
+-   **end_date**: Ngày kết thúc
+-   **status**: Trạng thái ('not_started', 'in_progress', 'completed', 'cancelled')
+-   **manager_id**: ID của quản lý dự án (khóa ngoại đến users)
+-   **team_leader_id**: ID của nhóm trưởng (khóa ngoại đến users)
+-   **created_at**: Thời gian tạo
+-   **updated_at**: Thời gian cập nhật gần nhất
+
+### 3. Bảng user_projects
+
+Quản lý mối quan hệ giữa người dùng và dự án.
+
+-   **id**: Khóa chính, tự động tăng
+-   **user_id**: ID người dùng (khóa ngoại đến users)
+-   **project_id**: ID dự án (khóa ngoại đến projects)
+-   **role**: Vai trò trong dự án ('manager', 'team_leader', 'employee')
+-   **is_team_leader**: Xác định nhân viên có phải là nhóm trưởng không (1/0)
+-   **created_at**: Thời gian thêm vào dự án
+
+### 4. Bảng tasks
+
+Lưu trữ thông tin về các nhiệm vụ.
+
+-   **id**: Khóa chính, tự động tăng
+-   **title**: Tiêu đề nhiệm vụ
+-   **description**: Mô tả nhiệm vụ
+-   **status**: Trạng thái ('not_assigned', 'in_progress', 'completed', 'overdue')
+-   **priority**: Độ ưu tiên ('high', 'medium', 'low')
+-   **start_date**: Ngày bắt đầu
+-   **due_date**: Deadline
+-   **completed_date**: Ngày hoàn thành
+-   **project_id**: ID dự án (khóa ngoại đến projects)
+-   **assigned_to**: ID người được giao (khóa ngoại đến users)
+-   **assigned_by**: ID người giao việc (khóa ngoại đến users)
+-   **is_penalty_applied**: Đã áp dụng phạt (1/0)
+-   **created_at**: Thời gian tạo
+-   **updated_at**: Thời gian cập nhật gần nhất
+
+### 5. Bảng task_history
+
+Theo dõi lịch sử thay đổi của các nhiệm vụ.
+
+-   **id**: Khóa chính, tự động tăng
+-   **task_id**: ID nhiệm vụ (khóa ngoại đến tasks)
+-   **status**: Trạng thái mới
+-   **updated_by**: ID người cập nhật (khóa ngoại đến users)
+-   **notes**: Ghi chú về sự thay đổi
+-   **created_at**: Thời gian cập nhật
+
+### 6. Bảng comments
+
+Lưu trữ các bình luận trên nhiệm vụ.
+
+-   **id**: Khóa chính, tự động tăng
+-   **content**: Nội dung bình luận
+-   **task_id**: ID nhiệm vụ (khóa ngoại đến tasks)
+-   **user_id**: ID người bình luận (khóa ngoại đến users)
+-   **created_at**: Thời gian tạo
+-   **updated_at**: Thời gian cập nhật gần nhất
+
+### 7. Bảng attachments
+
+Lưu trữ thông tin về các file đính kèm.
+
+-   **id**: Khóa chính, tự động tăng
+-   **file_name**: Tên file
+-   **file_path**: Đường dẫn đến file
+-   **file_type**: Loại file
+-   **task_id**: ID nhiệm vụ (khóa ngoại đến tasks)
+-   **uploaded_by**: ID người tải lên (khóa ngoại đến users)
+-   **created_at**: Thời gian tải lên
+
+### 8. Bảng evaluations
+
+Lưu trữ đánh giá nhân viên khi kết thúc dự án.
+
+-   **id**: Khóa chính, tự động tăng
+-   **user_id**: ID người được đánh giá (khóa ngoại đến users)
+-   **project_id**: ID dự án (khóa ngoại đến projects)
+-   **attitude_score**: Điểm thái độ làm việc (0-5)
+-   **quality_score**: Điểm chất lượng công việc (0-5)
+-   **overdue_days**: Tổng số ngày trễ hạn
+-   **on_time_rate**: Tỷ lệ hoàn thành đúng hạn (0-1)
+-   **completed_tasks**: Số nhiệm vụ đã hoàn thành
+-   **evaluator_id**: ID người đánh giá (khóa ngoại đến users)
+-   **notes**: Ghi chú đánh giá
+-   **created_at**: Thời gian đánh giá
+
+### 9. Bảng penalties
+
+Lưu trữ thông tin về các hình phạt.
+
+-   **id**: Khóa chính, tự động tăng
+-   **user_id**: ID người bị phạt (khóa ngoại đến users)
+-   **task_id**: ID nhiệm vụ liên quan (khóa ngoại đến tasks)
+-   **amount**: Số tiền phạt
+-   **reason**: Lý do phạt
+-   **applied_by**: ID người áp dụng phạt (khóa ngoại đến users)
+-   **is_paid**: Đã thanh toán (1/0)
+-   **created_at**: Thời gian tạo
+
+### 10. Bảng rewards
+
+Lưu trữ thông tin về các phần thưởng.
+
+-   **id**: Khóa chính, tự động tăng
+-   **user_id**: ID người được thưởng (khóa ngoại đến users)
+-   **project_id**: ID dự án liên quan (khóa ngoại đến projects)
+-   **amount**: Số tiền thưởng
+-   **reason**: Lý do thưởng
+-   **granted_by**: ID người cấp thưởng (khóa ngoại đến users)
+-   **created_at**: Thời gian tạo
+
+### 11. Bảng notifications
+
+Lưu trữ thông báo cho người dùng.
+
+-   **id**: Khóa chính, tự động tăng
+-   **user_id**: ID người nhận thông báo (khóa ngoại đến users)
+-   **title**: Tiêu đề thông báo
+-   **message**: Nội dung thông báo
+-   **type**: Loại thông báo (task, project, evaluation, etc.)
+-   **is_read**: Đã đọc (1/0)
+-   **related_id**: ID đối tượng liên quan
+-   **created_at**: Thời gian tạo
+
+## Vai trò và quyền hạn
+
+### 1. Admin
+
+-   Quản lý toàn bộ hệ thống
+-   Cấp tài khoản cho quản lý
+-   Xem báo cáo và thống kê toàn hệ thống
+
+### 2. Quản lý
+
+-   Tạo và quản lý dự án
+-   Thêm nhân viên vào dự án
+-   Chỉ định nhóm trưởng từ các nhân viên trong dự án
+-   Xem báo cáo và thống kê của dự án
+
+### 3. Nhân viên
+
+-   Nhận và thực hiện nhiệm vụ
+-   Có thể được chỉ định làm nhóm trưởng trong một dự án
+-   Nếu là nhóm trưởng: phân công nhiệm vụ, thiết lập deadline, đánh giá nhân viên
+-   Cập nhật trạng thái công việc
+-   Trao đổi qua bình luận
+-   Xem lịch trình và deadline
+
+## Lưu ý
+
+-   Mỗi nhân viên có thể là nhóm trưởng trong một số dự án và là thành viên thông thường trong các dự án khác
+-   Trạng thái nhóm trưởng được xác định trong bảng user_projects thông qua trường is_team_leader
+-   Quản lý có thể thay đổi nhóm trưởng của dự án bất cứ lúc nào
