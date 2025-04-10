@@ -191,6 +191,45 @@ class LibraryDatabaseHelper {
     });
   }
 
+  Future<List<Book>> getBooksPaginated({
+    required int offset,
+    required int limit,
+  }) async {
+    final db = await database;
+    final results = await db.query(
+      'books',
+      limit: limit,
+      offset: offset,
+      orderBy: 'id DESC',
+    );
+
+    return results.map((row) => Book.fromMap(row)).toList();
+  }
+
+  Future<List<Book>> searchBooksByTitleOptimized(
+    String keyword, {
+    required int limit,
+    int offset = 0,
+  }) async {
+    final db = await database;
+
+    // Sử dụng JOIN để lấy thông tin đầy đủ
+    final results = await db.rawQuery(
+      '''
+      SELECT b.*, a.name as author_name, c.name as category_name
+      FROM books b
+      LEFT JOIN authors a ON b.author_id = a.id
+      LEFT JOIN categories c ON b.category_id = c.id
+      WHERE b.title LIKE ?
+      ORDER BY b.title
+      LIMIT ? OFFSET ?
+    ''',
+      ['%$keyword%', limit, offset],
+    );
+
+    return results.map((row) => Book.fromMap(row)).toList();
+  }
+
   // CRUD operations for Author
   Future<int> insertAuthor(Author author) async {
     final db = await database;
@@ -307,10 +346,11 @@ class LibraryDatabaseHelper {
   }
 
   // Query analysis
-  Future<String> explainQueryPlan(String query) async {
+  Future<String> explainQueryPlan(String query, [List<Object?>? args]) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       'EXPLAIN QUERY PLAN $query',
+      args,
     );
 
     String plan = '';
@@ -391,18 +431,25 @@ class LibraryDatabaseHelper {
     int categoryId,
   ) async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
+
+    // Tận dụng compound index (category_id, publish_year)
+    final results = await db.query(
       'books',
-      where: 'publish_year = ? AND price BETWEEN ? AND ? AND category_id = ?',
-      whereArgs: [year, minPrice, maxPrice, categoryId],
+      where: 'category_id = ? AND publish_year = ? AND price BETWEEN ? AND ?',
+      whereArgs: [categoryId, year, minPrice, maxPrice],
+      orderBy: 'publish_year DESC, price DESC',
     );
-    return List.generate(maps.length, (i) => Book.fromMap(maps[i]));
+
+    return results.map((row) => Book.fromMap(row)).toList();
   }
 
-  Future<String> analyzeQueryPlan(String query, List<dynamic> args) async {
+  Future<String> analyzeQueryPlan(String query, List<Object?> args) async {
     final db = await database;
-    final result = await db.rawQuery('EXPLAIN QUERY PLAN $query', args);
-    return result.map((row) => row['detail'] as String).join('\n');
+    final results = await db.rawQuery('EXPLAIN QUERY PLAN $query', args);
+
+    return results
+        .map((row) => 'detail: ${row['detail']}, order: ${row['order']}')
+        .join('\n');
   }
 
   // Close database connection

@@ -231,20 +231,24 @@ class _PerformanceComparisonScreenState
           );
           break;
         case 'complex':
+          final year = int.parse(_yearController.text);
+          final minPrice = double.parse(_minPriceController.text);
+          final maxPrice = double.parse(_maxPriceController.text);
+          final categoryId = int.parse(_categoryIdController.text);
+
           results = await LibraryDatabaseHelper.instance.searchBooksComplex(
-            int.parse(_yearController.text),
-            double.parse(_minPriceController.text),
-            double.parse(_maxPriceController.text),
-            int.parse(_categoryIdController.text),
+            year,
+            minPrice,
+            maxPrice,
+            categoryId,
           );
+
           plan = await LibraryDatabaseHelper.instance.analyzeQueryPlan(
-            'SELECT * FROM books WHERE publish_year = ? AND price BETWEEN ? AND ? AND category_id = ?',
-            [
-              int.parse(_yearController.text),
-              double.parse(_minPriceController.text),
-              double.parse(_maxPriceController.text),
-              int.parse(_categoryIdController.text),
-            ],
+            '''SELECT * FROM books 
+               WHERE category_id = ? 
+               AND publish_year = ? 
+               AND price BETWEEN ? AND ?''',
+            [categoryId, year, minPrice, maxPrice],
           );
           break;
       }

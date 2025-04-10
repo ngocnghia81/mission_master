@@ -324,6 +324,12 @@ class LibraryHomePage extends StatefulWidget {
 }
 
 class _LibraryHomePageState extends State<LibraryHomePage> {
+  static const int _pageSize = 20;
+  int _currentPage = 0;
+  bool _hasMoreItems = true;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
+
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _isbnController = TextEditingController();
@@ -344,20 +350,66 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _scrollController.addListener(_onScroll);
+    _loadInitialData();
     _checkIndexStatus();
   }
 
-  Future<void> _loadData() async {
-    final books = await LibraryDatabaseHelper.instance.getAllBooks();
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreData();
+    }
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _currentPage = 0;
+      _hasMoreItems = true;
+      _books = [];
+    });
+    await _loadMoreData();
+    await _loadAuthorsAndCategories();
+  }
+
+  Future<void> _loadAuthorsAndCategories() async {
     final authors = await LibraryDatabaseHelper.instance.getAllAuthors();
     final categories = await LibraryDatabaseHelper.instance.getAllCategories();
 
+    if (!mounted) return;
     setState(() {
-      _books = books;
       _authors = authors;
       _categories = categories;
     });
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoadingMore || !_hasMoreItems) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final books = await LibraryDatabaseHelper.instance.getBooksPaginated(
+        offset: _currentPage * _pageSize,
+        limit: _pageSize,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        if (books.length < _pageSize) {
+          _hasMoreItems = false;
+        }
+        _books.addAll(books);
+        _currentPage++;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
   }
 
   Future<void> _checkIndexStatus() async {
@@ -402,41 +454,64 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
       await LibraryDatabaseHelper.instance.insertBook(book);
       _titleController.clear();
       _isbnController.clear();
-      _loadData();
+      _loadInitialData();
     }
   }
 
   Future<void> _searchBooksByTitle() async {
     if (_searchController.text.isEmpty) {
-      _loadData();
+      _loadInitialData();
       return;
     }
 
     setState(() {
       _isSearching = true;
       _currentQueryType = 'Search by Title';
-      _currentQuery =
-          "SELECT * FROM books WHERE title LIKE '%${_searchController.text}%'";
+      _currentQuery = """
+        SELECT b.*, a.name as author_name, c.name as category_name
+        FROM books b
+        LEFT JOIN authors a ON b.author_id = a.id
+        LEFT JOIN categories c ON b.category_id = c.id
+        WHERE b.title LIKE ?
+        ORDER BY b.title
+        LIMIT $_pageSize
+      """;
     });
 
-    final stopwatch = Stopwatch()..start();
-    final books = await LibraryDatabaseHelper.instance.searchBooksByTitle(
-      _searchController.text,
-    );
-    stopwatch.stop();
+    try {
+      final stopwatch = Stopwatch()..start();
+      final books = await LibraryDatabaseHelper.instance
+          .searchBooksByTitleOptimized(
+            _searchController.text,
+            limit: _pageSize,
+          );
+      stopwatch.stop();
 
-    final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
-      _currentQuery,
-    );
+      final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
+        _currentQuery,
+        ['%${_searchController.text}%'],
+      );
 
-    setState(() {
-      _books = books;
-      _queryPlan =
-          'Query execution time: ${stopwatch.elapsedMilliseconds}ms\n' +
-          'Indexes: ${_hasIndexes ? "Enabled ✅" : "Disabled ❌"}\n' +
-          'Query plan: $queryPlan';
-      _isSearching = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        _books = books;
+        _queryPlan =
+            'Query execution time: ${stopwatch.elapsedMilliseconds}ms\n'
+            'Indexes: ${_hasIndexes ? "Enabled ✅" : "Disabled ❌"}\n'
+            'Query plan:\n$queryPlan';
+        _isSearching = false;
+        _hasMoreItems = books.length == _pageSize;
+        _currentPage = 1;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi tìm kiếm: $e')));
+    }
   }
 
   Future<void> _searchBooksByCategoryAndYear() async {
@@ -448,33 +523,57 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
     final year = int.tryParse(_yearController.text);
 
     if (categoryId == null || year == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập Category ID và Year hợp lệ'),
+        ),
+      );
       return;
     }
 
     setState(() {
       _isSearching = true;
       _currentQueryType = 'Search by Category and Year';
-      _currentQuery =
-          "SELECT * FROM books WHERE category_id = $categoryId AND publish_year = $year";
+      _currentQuery = '''
+        SELECT b.*, a.name as author_name, c.name as category_name
+        FROM books b
+        LEFT JOIN authors a ON b.author_id = a.id
+        LEFT JOIN categories c ON b.category_id = c.id
+        WHERE b.category_id = $categoryId AND b.publish_year = $year
+        ORDER BY b.title
+      ''';
     });
 
-    final stopwatch = Stopwatch()..start();
-    final books = await LibraryDatabaseHelper.instance
-        .searchBooksByCategoryAndYear(categoryId, year);
-    stopwatch.stop();
+    try {
+      final stopwatch = Stopwatch()..start();
+      final books = await LibraryDatabaseHelper.instance
+          .searchBooksByCategoryAndYear(categoryId, year);
+      stopwatch.stop();
 
-    final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
-      _currentQuery,
-    );
+      final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
+        _currentQuery,
+        [categoryId, year],
+      );
 
-    setState(() {
-      _books = books;
-      _queryPlan =
-          'Query execution time: ${stopwatch.elapsedMilliseconds}ms\n' +
-          'Indexes: ${_hasIndexes ? "Enabled ✅" : "Disabled ❌"}\n' +
-          'Query plan: $queryPlan';
-      _isSearching = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        _books = books;
+        _queryPlan =
+            'Query execution time: ${stopwatch.elapsedMilliseconds}ms\n'
+            'Indexes: ${_hasIndexes ? "Enabled ✅" : "Disabled ❌"}\n'
+            'Query plan:\n$queryPlan';
+        _isSearching = false;
+        _hasMoreItems = false; // Disable lazy loading for search results
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi tìm kiếm: $e')));
+    }
   }
 
   Future<void> _generateSampleData() async {
@@ -570,7 +669,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
       _isGenerating = false;
     });
 
-    _loadData();
+    _loadInitialData();
   }
 
   @override
@@ -832,31 +931,54 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Query: $_currentQueryType',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Query: $_currentQueryType',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'SQL: $_currentQuery',
-                        style: const TextStyle(fontFamily: 'monospace'),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(4),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                _currentQuery,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        child: Text(_queryPlan),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(_queryPlan),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -871,18 +993,41 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Books (${_books.length})',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Books (${_books.length}${_hasMoreItems ? '+' : ''})',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (_isLoadingMore)
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Expanded(
                         child: ListView.builder(
-                          itemCount: _books.length,
+                          controller: _scrollController,
+                          itemCount: _books.length + (_hasMoreItems ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index == _books.length) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+
                             final book = _books[index];
                             final author = _authors.firstWhere(
                               (a) => a.id == book.authorId,
@@ -902,10 +1047,14 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
                                   ),
                             );
 
-                            return ListTile(
-                              title: Text(book.title),
-                              subtitle: Text(
-                                '${author.name} | ${category.name} | ${book.publishYear} | \$${book.price.toStringAsFixed(2)}',
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: ListTile(
+                                title: Text(book.title),
+                                subtitle: Text(
+                                  '${author.name} | ${category.name} | '
+                                  '${book.publishYear} | \$${book.price.toStringAsFixed(2)}',
+                                ),
                               ),
                             );
                           },
@@ -924,6 +1073,7 @@ class _LibraryHomePageState extends State<LibraryHomePage> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _titleController.dispose();
     _isbnController.dispose();
     _searchController.dispose();
