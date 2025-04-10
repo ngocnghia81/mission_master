@@ -131,7 +131,12 @@ class LibraryDatabaseHelper {
   // CRUD operations for Book
   Future<int> insertBook(Book book) async {
     final db = await database;
-    return await db.insert('books', book.toMap());
+    return await db.insert(
+      'books',
+      book.toMap(),
+      conflictAlgorithm:
+          ConflictAlgorithm.replace, // Handle unique constraint conflicts
+    );
   }
 
   Future<List<Book>> getAllBooks() async {

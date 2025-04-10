@@ -80,12 +80,13 @@ class _TransactionsDemoScreenState extends State<TransactionsDemoScreen> {
     final titleSuffixes = ['SQLite', 'Database', 'Flutter', 'Mobile', 'Demo'];
 
     final title =
-        '${titlePrefixes[random.nextInt(titlePrefixes.length)]} ${titleSuffixes[random.nextInt(titleSuffixes.length)]} #${index + 1}';
-    final isbn = 'BATCH-${random.nextInt(10000)}-${random.nextInt(10000)}';
+        '${titlePrefixes[random.nextInt(titlePrefixes.length)]} ${titleSuffixes[random.nextInt(titleSuffixes.length)]} #$index';
+    // Make ISBN unique by using index
+    final isbn = 'BATCH-${index}-${random.nextInt(10000)}';
     final authorId = random.nextInt(10) + 1; // giả sử có 10 tác giả
     final categoryId = random.nextInt(10) + 1; // giả sử có 10 thể loại
     final publishYear = 2020 + random.nextInt(5);
-    final price = 100000.0 + random.nextInt(400) * 1000;
+    final price = (100000 + random.nextInt(400) * 1000).toDouble();
     final stockQuantity = random.nextInt(50) + 1;
 
     return Book(
@@ -101,8 +102,15 @@ class _TransactionsDemoScreenState extends State<TransactionsDemoScreen> {
 
   // Xóa toàn bộ sách demo
   Future<void> _clearBenchmarkBooks() async {
-    final db = await LibraryDatabaseHelper.instance.database;
-    await db.delete('books', where: "isbn LIKE ?", whereArgs: ['BATCH-%']);
+    try {
+      final db = await LibraryDatabaseHelper.instance.database;
+      await db.execute("DELETE FROM books WHERE isbn LIKE 'BATCH-%'");
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error clearing books: $e')));
+    }
   }
 
   // Chạy benchmark cho tất cả phương pháp
@@ -288,12 +296,13 @@ class _TransactionsDemoScreenState extends State<TransactionsDemoScreen> {
     final titleSuffixes = ['SQLite', 'Database', 'Flutter', 'Mobile', 'Demo'];
 
     final title =
-        '${titlePrefixes[random.nextInt(titlePrefixes.length)]} ${titleSuffixes[random.nextInt(titleSuffixes.length)]} #${index + 1}';
-    final isbn = 'BATCH-${random.nextInt(10000)}-${random.nextInt(10000)}';
+        '${titlePrefixes[random.nextInt(titlePrefixes.length)]} ${titleSuffixes[random.nextInt(titleSuffixes.length)]} #$index';
+    // Make ISBN unique by using index
+    final isbn = 'BATCH-${index}-${random.nextInt(10000)}';
     final authorId = random.nextInt(10) + 1; // giả sử có 10 tác giả
     final categoryId = random.nextInt(10) + 1; // giả sử có 10 thể loại
     final publishYear = 2020 + random.nextInt(5);
-    final price = 100000.0 + random.nextInt(400) * 1000;
+    final price = (100000 + random.nextInt(400) * 1000).toDouble();
     final stockQuantity = random.nextInt(50) + 1;
 
     return Book(
@@ -595,8 +604,11 @@ class _TransactionsDemoScreenState extends State<TransactionsDemoScreen> {
     // Tìm giá trị lớn nhất để tính tỷ lệ
     final maxTime = _benchmarkResults.values.reduce(max);
 
-    // Tìm giá trị nhỏ nhất để tính cải thiện
-    final minTime = _benchmarkResults.values.reduce(min);
+    // Tìm thời gian của phương thức thêm riêng lẻ tương ứng
+    final individualTime =
+        _useIsolate
+            ? (_benchmarkResults['Thêm riêng lẻ (Isolate)'] ?? 1)
+            : (_benchmarkResults['Thêm riêng lẻ'] ?? 1);
 
     return Column(
       children: [
@@ -647,10 +659,12 @@ class _TransactionsDemoScreenState extends State<TransactionsDemoScreen> {
               final method = entry.key;
               final time = entry.value;
 
-              // Tính % cải thiện so với thêm riêng lẻ
-              final individualTime = _benchmarkResults['Thêm riêng lẻ'] ?? 1;
+              // Chỉ tính % cải thiện cho các phương thức không phải thêm riêng lẻ
+              final isIndividualMethod = method.contains('riêng lẻ');
               final improvement =
-                  (individualTime - time) / individualTime * 100;
+                  isIndividualMethod
+                      ? 0.0
+                      : (individualTime - time) / individualTime * 100;
 
               return TableRow(
                 children: [
@@ -665,12 +679,13 @@ class _TransactionsDemoScreenState extends State<TransactionsDemoScreen> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child:
-                        method == 'Thêm riêng lẻ'
+                        isIndividualMethod
                             ? const Text('-')
                             : Text(
                               '${improvement.toStringAsFixed(1)}% nhanh hơn',
-                              style: const TextStyle(
-                                color: Colors.green,
+                              style: TextStyle(
+                                color:
+                                    improvement > 0 ? Colors.green : Colors.red,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

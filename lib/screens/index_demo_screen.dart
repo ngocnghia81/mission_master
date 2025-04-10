@@ -29,9 +29,12 @@ class _IndexDemoScreenState extends State<IndexDemoScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+
     final books = await LibraryDatabaseHelper.instance.getAllBooks();
     final indexes = await LibraryDatabaseHelper.instance.getAllIndexes();
 
+    if (!mounted) return;
     setState(() {
       _books = books;
       _indexes = indexes;
@@ -39,7 +42,11 @@ class _IndexDemoScreenState extends State<IndexDemoScreen> {
   }
 
   Future<void> _checkIndexStatus() async {
+    if (!mounted) return;
+
     final hasIndexes = await LibraryDatabaseHelper.instance.areIndexesEnabled();
+
+    if (!mounted) return;
     setState(() {
       _hasIndexes = hasIndexes;
     });
@@ -61,32 +68,49 @@ class _IndexDemoScreenState extends State<IndexDemoScreen> {
   }
 
   Future<void> _searchBooksByTitle() async {
-    if (_searchController.text.isEmpty) {
-      return;
-    }
+    if (_searchController.text.isEmpty || !mounted) return;
 
     setState(() {
       _isSearching = true;
-      _currentQuery =
-          "SELECT * FROM books WHERE title LIKE '%${_searchController.text}%'";
+      _currentQuery = """
+        SELECT id, title, isbn, publish_year 
+        FROM books 
+        WHERE title LIKE '${_searchController.text}%'
+        ORDER BY title
+        LIMIT 100
+      """;
     });
 
-    final stopwatch = Stopwatch()..start();
-    final books = await LibraryDatabaseHelper.instance.searchBooksByTitle(
-      _searchController.text,
-    );
-    stopwatch.stop();
+    try {
+      final stopwatch = Stopwatch()..start();
+      final db = await LibraryDatabaseHelper.instance.database;
+      final results = await db.transaction((txn) async {
+        return await txn.rawQuery(_currentQuery);
+      });
 
-    final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
-      _currentQuery,
-    );
+      final books = results.map((row) => Book.fromMap(row)).toList();
+      stopwatch.stop();
 
-    setState(() {
-      _books = books;
-      _queryPlan = queryPlan;
-      _lastExecutionTime = stopwatch.elapsedMilliseconds;
-      _isSearching = false;
-    });
+      final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
+        _currentQuery,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _books = books;
+        _queryPlan = queryPlan;
+        _lastExecutionTime = stopwatch.elapsedMilliseconds;
+        _isSearching = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi tìm kiếm: $e')));
+    }
   }
 
   @override

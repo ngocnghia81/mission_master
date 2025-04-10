@@ -13,49 +13,150 @@ class QueryOptimizationsScreen extends StatefulWidget {
 class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
   final List<QueryExample> _queryExamples = [
     QueryExample(
-      title: 'Tìm kiếm chính xác',
-      badQuery: "SELECT * FROM books WHERE title LIKE '%Adventure%'",
-      goodQuery: "SELECT * FROM books WHERE title = 'Adventure'",
+      title: 'Tối ưu tìm kiếm với LIKE',
+      badQuery: """
+        SELECT id, title, publish_year, price 
+        FROM books 
+        WHERE title LIKE '%Adventure%'  -- Không thể sử dụng index với wildcard ở đầu
+        ORDER BY publish_year DESC
+      """,
+      goodQuery: """
+        SELECT id, title, publish_year, price 
+        FROM books 
+        WHERE title LIKE 'Adventure%'   -- Có thể sử dụng index với prefix search
+        ORDER BY publish_year DESC
+      """,
       explanation:
-          'Sử dụng so sánh chính xác (=) thay vì LIKE với wildcard ở cả hai đầu khi cần tìm chính xác',
+          'Cùng tìm các sách có từ "Adventure", nhưng prefix search cho phép sử dụng index nên nhanh hơn',
     ),
     QueryExample(
-      title: 'Tìm kiếm tiền tố',
-      badQuery: "SELECT * FROM books WHERE title LIKE '%Adventure'",
-      goodQuery: "SELECT * FROM books WHERE title LIKE 'Adventure%'",
+      title: 'Tối ưu JOIN và điều kiện lọc',
+      badQuery: """
+        SELECT b.*, a.name as author_name, c.name as category_name
+        FROM books b 
+        JOIN authors a ON b.author_id = a.id 
+        JOIN categories c ON b.category_id = c.id
+        WHERE b.price > 20
+      """,
+      goodQuery: """
+        SELECT b.*, a.name as author_name, c.name as category_name
+        FROM books b 
+        JOIN authors a ON b.author_id = a.id 
+        JOIN categories c ON b.category_id = c.id
+        WHERE b.category_id = 1 AND b.price > 20  -- Thêm điều kiện có index
+      """,
       explanation:
-          'LIKE với wildcard ở đầu không thể tận dụng index, trong khi wildcard ở cuối thì có thể',
+          'Cùng tìm sách và thông tin liên quan, nhưng thêm điều kiện có index để tối ưu tốc độ',
     ),
     QueryExample(
-      title: 'Sử dụng IN thay vì OR',
-      badQuery:
-          "SELECT * FROM books WHERE category_id = 1 OR category_id = 2 OR category_id = 3",
-      goodQuery: "SELECT * FROM books WHERE category_id IN (1, 2, 3)",
+      title: 'Tối ưu điều kiện phạm vi',
+      badQuery: """
+        SELECT id, title, price, publish_year
+        FROM books
+        WHERE price >= 10 AND price <= 50 
+        AND publish_year >= 2020
+      """,
+      goodQuery: """
+        SELECT id, title, price, publish_year
+        FROM books
+        WHERE price BETWEEN 10 AND 50
+        AND publish_year >= 2020
+        AND category_id = 1  -- Thêm điều kiện có index
+      """,
       explanation:
-          'Sử dụng IN thay vì nhiều điều kiện OR giúp tối ưu hiệu suất truy vấn',
+          'Cùng tìm sách trong khoảng giá và năm, nhưng sử dụng BETWEEN và thêm điều kiện index để tối ưu',
     ),
     QueryExample(
-      title: 'Giới hạn kết quả trả về',
-      badQuery: "SELECT * FROM books",
-      goodQuery: "SELECT * FROM books LIMIT 100",
+      title: 'Tối ưu sắp xếp',
+      badQuery: """
+        SELECT id, title, publish_year, price
+        FROM books
+        WHERE publish_year > 2020
+        ORDER BY publish_year DESC, price DESC
+      """,
+      goodQuery: """
+        SELECT id, title, publish_year, price
+        FROM books
+        WHERE category_id = 1 AND publish_year > 2020  -- Dùng compound index
+        ORDER BY publish_year DESC, price DESC
+      """,
       explanation:
-          'Thêm LIMIT để giới hạn số lượng kết quả trả về, tránh tải dữ liệu không cần thiết',
+          'Cùng tìm và sắp xếp sách theo năm và giá, nhưng tận dụng compound index để tối ưu',
     ),
     QueryExample(
-      title: 'Chỉ lấy các cột cần thiết',
-      badQuery:
-          "SELECT * FROM books JOIN authors ON books.author_id = authors.id",
-      goodQuery:
-          "SELECT books.title, authors.name FROM books JOIN authors ON books.author_id = authors.id",
+      title: 'Tối ưu thống kê nhóm',
+      badQuery: """
+        SELECT category_id, COUNT(*) as book_count, AVG(price) as avg_price
+        FROM books
+        GROUP BY category_id
+        HAVING COUNT(*) > 0
+      """,
+      goodQuery: """
+        SELECT c.id, c.name, COUNT(b.id) as book_count, AVG(b.price) as avg_price
+        FROM categories c
+        LEFT JOIN books b ON c.id = b.category_id
+        GROUP BY c.id, c.name
+        HAVING COUNT(b.id) > 0
+      """,
       explanation:
-          'Chỉ chọn các cột cần thiết thay vì lấy tất cả (*) giúp giảm lượng dữ liệu truyền tải',
+          'Cùng thống kê số lượng và giá trung bình theo danh mục, nhưng JOIN để có thêm thông tin và tối ưu group',
     ),
     QueryExample(
-      title: 'Sử dụng điều kiện trên cột có index',
-      badQuery: "SELECT * FROM books WHERE price > 20.0",
-      goodQuery: "SELECT * FROM books WHERE category_id = 1 AND price > 20.0",
+      title: 'Tối ưu JOIN với Index',
+      badQuery: """
+        SELECT b.title, b.publish_year, a.name as author_name
+        FROM books b
+        JOIN authors a ON b.author_id = a.id
+        WHERE b.publish_year > 2020
+        ORDER BY b.publish_year DESC
+        -- Query plan sẽ hiện SCAN TABLE books và SCAN TABLE authors
+      """,
+      goodQuery: """
+        SELECT b.title, b.publish_year, a.name as author_name
+        FROM books b
+        JOIN authors a ON b.author_id = a.id
+        WHERE b.category_id = 1 
+        AND b.publish_year > 2020
+        ORDER BY b.publish_year DESC
+        -- Query plan sẽ hiện:
+        -- SEARCH TABLE books USING INDEX idx_books_category_year
+        -- SEARCH TABLE authors USING INTEGER PRIMARY KEY
+      """,
       explanation:
-          'Kết hợp điều kiện trên cột có index (category_id) với điều kiện khác để tối ưu truy vấn',
+          'So sánh hiệu suất khi JOIN: Truy vấn đầu phải quét toàn bộ bảng books và authors (SCAN TABLE). '
+          'Truy vấn thứ hai tận dụng được index trên category_id và publish_year (SEARCH USING INDEX), '
+          'cũng như primary key của bảng authors.',
+    ),
+    QueryExample(
+      title: 'Tối ưu với Covering Index và Subquery',
+      badQuery: """
+        SELECT b.title, b.price
+        FROM books b
+        WHERE b.category_id IN (
+          SELECT id FROM categories 
+          WHERE name LIKE '%Fiction%'
+        )
+        -- Query plan sẽ hiện:
+        -- SCAN TABLE categories
+        -- SCAN TABLE books
+        -- Subquery phải chạy cho mỗi dòng trong bảng books
+      """,
+      goodQuery: """
+        -- Đã tạo covering index:
+        -- CREATE INDEX idx_books_cat_price ON books(category_id, title, price)
+        SELECT b.title, b.price
+        FROM books b
+        JOIN categories c ON b.category_id = c.id
+        WHERE c.name LIKE 'Fiction%'
+        -- Query plan sẽ hiện:
+        -- SEARCH TABLE categories USING INDEX idx_categories_name
+        -- SEARCH TABLE books USING COVERING INDEX idx_books_cat_price
+      """,
+      explanation:
+          'Ví dụ về covering index và tránh subquery: '
+          'Truy vấn đầu sử dụng subquery không hiệu quả, phải quét nhiều lần. '
+          'Truy vấn thứ hai tận dụng covering index (bao gồm cả category_id, title và price) '
+          'và JOIN trực tiếp thay vì dùng subquery.',
     ),
   ];
 
@@ -69,24 +170,38 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
     setState(() {
       _isExecuting = true;
       _selectedQuery = query;
+      _resultBooks = [];
+      _queryPlan = '';
+      _executionTime = 0;
     });
 
-    final stopwatch = Stopwatch()..start();
-    final results = await LibraryDatabaseHelper.instance.executeRawQuery(query);
-    stopwatch.stop();
+    try {
+      final stopwatch = Stopwatch()..start();
+      final results = await LibraryDatabaseHelper.instance.executeRawQuery(
+        query,
+      );
+      stopwatch.stop();
 
-    final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
-      query,
-    );
+      final queryPlan = await LibraryDatabaseHelper.instance.explainQueryPlan(
+        query,
+      );
 
-    final books = results.map((row) => Book.fromMap(row)).toList();
-
-    setState(() {
-      _resultBooks = books;
-      _queryPlan = queryPlan;
-      _executionTime = stopwatch.elapsedMilliseconds;
-      _isExecuting = false;
-    });
+      setState(() {
+        if (query.toLowerCase().contains('from books')) {
+          _resultBooks = results.map((row) => Book.fromMap(row)).toList();
+        }
+        _queryPlan = queryPlan;
+        _executionTime = stopwatch.elapsedMilliseconds;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi thực thi truy vấn: $e')));
+    } finally {
+      setState(() {
+        _isExecuting = false;
+      });
+    }
   }
 
   @override

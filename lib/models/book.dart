@@ -34,14 +34,14 @@ class Book {
 
   factory Book.fromMap(Map<String, dynamic> map) {
     return Book(
-      id: map['id'],
-      title: map['title'],
-      isbn: map['isbn'],
-      authorId: map['author_id'],
-      categoryId: map['category_id'],
-      publishYear: map['publish_year'],
-      price: map['price'],
-      stockQuantity: map['stock_quantity'],
+      id: map['id'] as int?,
+      title: map['title'] as String? ?? 'Unknown',
+      isbn: map['isbn'] as String? ?? '',
+      authorId: map['author_id'] as int? ?? 0,
+      categoryId: map['category_id'] as int? ?? 0,
+      publishYear: map['publish_year'] as int? ?? 0,
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      stockQuantity: map['stock_quantity'] as int? ?? 0,
     );
   }
 }

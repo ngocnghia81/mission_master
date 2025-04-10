@@ -4,6 +4,7 @@ import '../models/book.dart';
 import '../models/author.dart';
 import '../models/category.dart';
 import 'dart:math';
+import 'dart:async';
 
 class PerformanceComparisonScreen extends StatefulWidget {
   const PerformanceComparisonScreen({super.key});
@@ -27,6 +28,8 @@ class _PerformanceComparisonScreenState
   List<Book> _searchResults = [];
   String _queryPlan = '';
   Duration _executionTime = Duration.zero;
+  double _progress = 0.0;
+  StreamController<double>? _progressController;
 
   @override
   void initState() {
@@ -44,6 +47,7 @@ class _PerformanceComparisonScreenState
     _maxPriceController.dispose();
     _categoryIdController.dispose();
     _sampleDataController.dispose();
+    _progressController?.close();
     super.dispose();
   }
 
@@ -58,52 +62,69 @@ class _PerformanceComparisonScreenState
 
     setState(() {
       _isGeneratingData = true;
+      _progress = 0.0;
+    });
+
+    // Khởi tạo StreamController
+    _progressController = StreamController<double>();
+    _progressController!.stream.listen((progress) {
+      setState(() => _progress = progress);
     });
 
     // Xóa dữ liệu cũ
     await LibraryDatabaseHelper.instance.deleteAllBooks();
 
-    // Tạo danh mục nếu chưa có
+    // Tạo categories và authors nếu chưa có
     final categories = await LibraryDatabaseHelper.instance.getAllCategories();
-    if (categories.isEmpty) {
-      await _createSampleCategories();
-    }
+    if (categories.isEmpty) await _createSampleCategories();
 
-    // Tạo tác giả nếu chưa có
     final authors = await LibraryDatabaseHelper.instance.getAllAuthors();
-    if (authors.isEmpty) {
-      await _createSampleAuthors();
-    }
+    if (authors.isEmpty) await _createSampleAuthors();
 
-    // Lấy danh sách danh mục và tác giả để sử dụng
+    // Lấy danh sách categories và authors
     final updatedCategories =
         await LibraryDatabaseHelper.instance.getAllCategories();
     final updatedAuthors = await LibraryDatabaseHelper.instance.getAllAuthors();
 
-    // Tạo ngẫu nhiên sách
     final random = Random();
-    for (int i = 0; i < count; i++) {
-      final book = Book(
-        title: 'Book ${i + 1} - ${_getRandomTitle(random)}',
-        isbn: 'ISBN-${10000 + i}',
-        authorId: updatedAuthors[random.nextInt(updatedAuthors.length)].id!,
-        categoryId:
-            updatedCategories[random.nextInt(updatedCategories.length)].id!,
-        publishYear: 2010 + random.nextInt(14), // 2010-2023
-        price: 10 + random.nextDouble() * 90, // $10-$100
-        stockQuantity: random.nextInt(100),
+    final batchSize = 1000; // Số lượng sách xử lý mỗi batch
+    final batches = (count / batchSize).ceil();
+
+    for (var i = 0; i < batches; i++) {
+      final currentBatchSize = min(batchSize, count - (i * batchSize));
+      final batch = await LibraryDatabaseHelper.instance.database.then(
+        (db) => db.batch(),
       );
 
-      await LibraryDatabaseHelper.instance.insertBook(book);
+      for (var j = 0; j < currentBatchSize; j++) {
+        final bookIndex = (i * batchSize) + j;
+        final book = Book(
+          title: 'Book ${bookIndex + 1} - ${_getRandomTitle(random)}',
+          isbn: 'ISBN-${10000 + bookIndex}',
+          authorId: updatedAuthors[random.nextInt(updatedAuthors.length)].id!,
+          categoryId:
+              updatedCategories[random.nextInt(updatedCategories.length)].id!,
+          publishYear: 2010 + random.nextInt(14),
+          price: 10 + random.nextDouble() * 90,
+          stockQuantity: random.nextInt(100),
+        );
 
-      // Cập nhật UI mỗi 20 cuốn để người dùng thấy tiến trình
-      if (i % 20 == 0) {
-        setState(() {});
+        batch.insert('books', book.toMap());
       }
+
+      await batch.commit(noResult: true);
+
+      // Cập nhật tiến trình
+      final progress = min(((i + 1) * batchSize) / count, 1.0);
+      _progressController?.add(progress);
     }
+
+    _progressController?.close();
+    _progressController = null;
 
     setState(() {
       _isGeneratingData = false;
+      _progress = 1.0;
     });
 
     ScaffoldMessenger.of(
@@ -287,13 +308,32 @@ class _PerformanceComparisonScreenState
                             ),
                           ),
                           const SizedBox(width: 16),
-                          ElevatedButton(
-                            onPressed:
-                                _isGeneratingData ? null : _generateSampleData,
-                            child:
-                                _isGeneratingData
-                                    ? const CircularProgressIndicator()
-                                    : const Text('Tạo dữ liệu mẫu'),
+                          Column(
+                            children: [
+                              ElevatedButton(
+                                onPressed:
+                                    _isGeneratingData
+                                        ? null
+                                        : _generateSampleData,
+                                child:
+                                    _isGeneratingData
+                                        ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                        : const Text('Tạo dữ liệu mẫu'),
+                              ),
+                              if (_isGeneratingData)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    '${(_progress * 100).toStringAsFixed(1)}%',
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),
