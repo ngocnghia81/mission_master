@@ -57,12 +57,32 @@ class _TransactionsDemoScreenState extends State<TransactionsDemoScreen> {
     final random = Random();
     final db = await LibraryDatabaseHelper.instance.database;
 
-    final batch = db.batch();
-    for (int i = 0; i < count; i++) {
-      final book = _generateRandomBook(random, i);
-      batch.insert('books', book.toMap());
+    const int batchSize = 500; // Kích thước batch phù hợp
+    final int numberOfBatches = (count / batchSize).ceil();
+
+    try {
+      await db.transaction((txn) async {
+        for (int batchIndex = 0; batchIndex < numberOfBatches; batchIndex++) {
+          final batch = txn.batch();
+          final startIndex = batchIndex * batchSize;
+          final endIndex = min(startIndex + batchSize, count);
+
+          for (int i = startIndex; i < endIndex; i++) {
+            final book = _generateRandomBook(random, i);
+            batch.insert('books', book.toMap());
+          }
+
+          await batch.commit(noResult: true);
+
+          // Cập nhật tiến độ nếu cần
+          final progress = ((batchIndex + 1) / numberOfBatches * 100).toInt();
+          print('Processed: $progress%');
+        }
+      });
+    } catch (e) {
+      print('Error in batch operation: $e');
+      rethrow;
     }
-    await batch.commit(noResult: true);
 
     stopwatch.stop();
     return stopwatch.elapsedMilliseconds;

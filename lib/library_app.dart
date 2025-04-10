@@ -10,6 +10,7 @@ import 'screens/query_optimizations_screen.dart';
 import 'screens/performance_comparison_screen.dart';
 import 'screens/transactions_demo_screen.dart';
 import 'screens/lazy_loading_demo_screen.dart';
+import 'screens/load_books_demo_screen.dart';
 
 void main() {
   runApp(const LibraryApp());
@@ -147,6 +148,20 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.memory),
+              title: const Text('Load Books Demo'),
+              subtitle: const Text('Main Thread vs Isolate'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LoadBooksDemoScreen(),
+                  ),
+                );
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.info),
@@ -172,7 +187,7 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -198,74 +213,91 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
-                children: [
-                  _buildFeatureCard(
-                    context,
-                    icon: Icons.schema,
-                    title: 'Schema Optimization',
-                    description: 'Thiết kế cấu trúc DB hiệu quả',
-                    screen: const SchemaDemoScreen(),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    icon: Icons.list_alt,
-                    title: 'Indexing Demo',
-                    description: 'So sánh hiệu suất với và không có index',
-                    screen: const IndexDemoScreen(),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    icon: Icons.search,
-                    title: 'Query Optimization',
-                    description: 'Các kỹ thuật tối ưu truy vấn',
-                    screen: const QueryOptimizationsScreen(),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    icon: Icons.speed,
-                    title: 'Performance Comparison',
-                    description: 'So sánh hiệu suất các kỹ thuật',
-                    screen: const PerformanceComparisonScreen(),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    icon: Icons.swap_horiz,
-                    title: 'Transactions Demo',
-                    description: 'So sánh hiệu suất transactions và batch',
-                    screen: const TransactionsDemoScreen(),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    icon: Icons.view_list,
-                    title: 'Lazy Loading & Caching',
-                    description: 'Demo infinite scrolling và cache hiệu quả',
-                    screen: const LazyLoadingDemoScreen(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Khởi động Demo Đầy Đủ'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LibraryHomePage(),
-                    ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _buildFeatureCard(
+                        context,
+                        icon: Icons.schema,
+                        title: 'Schema Optimization',
+                        description: 'Thiết kế cấu trúc DB hiệu quả',
+                        screen: const SchemaDemoScreen(),
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        icon: Icons.list_alt,
+                        title: 'Indexing Demo',
+                        description: 'So sánh hiệu suất với và không có index',
+                        screen: const IndexDemoScreen(),
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        icon: Icons.search,
+                        title: 'Query Optimization',
+                        description: 'Các kỹ thuật tối ưu truy vấn',
+                        screen: const QueryOptimizationsScreen(),
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        icon: Icons.speed,
+                        title: 'Performance Comparison',
+                        description: 'So sánh hiệu suất các kỹ thuật',
+                        screen: const PerformanceComparisonScreen(),
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        icon: Icons.swap_horiz,
+                        title: 'Transactions Demo',
+                        description: 'So sánh hiệu suất transactions và batch',
+                        screen: const TransactionsDemoScreen(),
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        icon: Icons.view_list,
+                        title: 'Lazy Loading & Caching',
+                        description:
+                            'Demo infinite scrolling và cache hiệu quả',
+                        screen: const LazyLoadingDemoScreen(),
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        icon: Icons.memory,
+                        title: 'Load Books Demo',
+                        description:
+                            'So sánh hiệu suất load sách với và không có Isolate',
+                        screen: const LoadBooksDemoScreen(),
+                      ),
+                    ],
                   );
                 },
               ),
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Khởi động Demo Đầy Đủ'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LibraryHomePage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

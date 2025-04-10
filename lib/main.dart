@@ -19,30 +19,73 @@ void main() async {
 }
 
 Widget _buildFeatureCards(BuildContext context) {
-  return Column(
-    children: [
-      Row(
-        children: [
-          Expanded(
-            child: _buildFeatureCard(
-              'Transactions Demo',
-              Icons.speed,
-              'So sánh hiệu suất riêng lẻ vs transactions vs batch',
-              () => Navigator.pushNamed(context, '/transactions'),
+  final features = [
+    {
+      'title': 'Transactions Demo',
+      'icon': Icons.speed,
+      'description': 'So sánh hiệu suất riêng lẻ vs transactions vs batch',
+      'route': '/transactions',
+    },
+    {
+      'title': 'Lazy Loading & Caching',
+      'icon': Icons.view_list,
+      'description': 'Demo infinite scrolling và chiến lược cache hiệu quả',
+      'route': '/lazy_loading',
+    },
+    {
+      'title': 'Load Books Demo',
+      'icon': Icons.book,
+      'description': 'So sánh hiệu suất load sách với và không có Isolate',
+      'color': Colors.teal[100],
+      'iconColor': Colors.teal[700],
+      'route': '/load_books_demo',
+    },
+  ];
+
+  return GridView.builder(
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      childAspectRatio: 3 / 2,
+    ),
+    itemCount: features.length,
+    itemBuilder: (context, index) {
+      final feature = features[index];
+      return Card(
+        color: feature['color'] as Color?,
+        elevation: 4,
+        margin: const EdgeInsets.all(8),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, feature['route'] as String),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  feature['icon'] as IconData,
+                  size: 48,
+                  color: feature['iconColor'] as Color?,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  feature['title'] as String,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  feature['description'] as String,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: _buildFeatureCard(
-              'Lazy Loading & Caching',
-              Icons.view_list,
-              'Demo infinite scrolling và chiến lược cache hiệu quả',
-              () => Navigator.pushNamed(context, '/lazy_loading'),
-            ),
-          ),
-        ],
-      ),
-      // ... rest of code ...
-    ],
+        ),
+      );
+    },
   );
 }
 

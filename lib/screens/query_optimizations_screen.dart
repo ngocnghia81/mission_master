@@ -17,13 +17,13 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
       badQuery: """
         SELECT id, title, publish_year, price 
         FROM books 
-        WHERE title LIKE '%Adventure%'  -- Không thể sử dụng index với wildcard ở đầu
+        WHERE title LIKE '%Adventure%'
         ORDER BY publish_year DESC
       """,
       goodQuery: """
         SELECT id, title, publish_year, price 
         FROM books 
-        WHERE title LIKE 'Adventure%'   -- Có thể sử dụng index với prefix search
+        WHERE title LIKE 'Adventure%'
         ORDER BY publish_year DESC
       """,
       explanation:
@@ -43,7 +43,7 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
         FROM books b 
         JOIN authors a ON b.author_id = a.id 
         JOIN categories c ON b.category_id = c.id
-        WHERE b.category_id = 1 AND b.price > 20  -- Thêm điều kiện có index
+        WHERE b.category_id = 1 AND b.price > 20
       """,
       explanation:
           'Cùng tìm sách và thông tin liên quan, nhưng thêm điều kiện có index để tối ưu tốc độ',
@@ -61,7 +61,7 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
         FROM books
         WHERE price BETWEEN 10 AND 50
         AND publish_year >= 2020
-        AND category_id = 1  -- Thêm điều kiện có index
+        AND category_id = 1
       """,
       explanation:
           'Cùng tìm sách trong khoảng giá và năm, nhưng sử dụng BETWEEN và thêm điều kiện index để tối ưu',
@@ -77,7 +77,7 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
       goodQuery: """
         SELECT id, title, publish_year, price
         FROM books
-        WHERE category_id = 1 AND publish_year > 2020  -- Dùng compound index
+        WHERE category_id = 1 AND publish_year > 2020
         ORDER BY publish_year DESC, price DESC
       """,
       explanation:
@@ -109,7 +109,6 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
         JOIN authors a ON b.author_id = a.id
         WHERE b.publish_year > 2020
         ORDER BY b.publish_year DESC
-        -- Query plan sẽ hiện SCAN TABLE books và SCAN TABLE authors
       """,
       goodQuery: """
         SELECT b.title, b.publish_year, a.name as author_name
@@ -118,14 +117,9 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
         WHERE b.category_id = 1 
         AND b.publish_year > 2020
         ORDER BY b.publish_year DESC
-        -- Query plan sẽ hiện:
-        -- SEARCH TABLE books USING INDEX idx_books_category_year
-        -- SEARCH TABLE authors USING INTEGER PRIMARY KEY
       """,
       explanation:
-          'So sánh hiệu suất khi JOIN: Truy vấn đầu phải quét toàn bộ bảng books và authors (SCAN TABLE). '
-          'Truy vấn thứ hai tận dụng được index trên category_id và publish_year (SEARCH USING INDEX), '
-          'cũng như primary key của bảng authors.',
+          'So sánh hiệu suất khi JOIN: Truy vấn đầu phải quét toàn bộ bảng books và authors (SCAN TABLE). Truy vấn thứ hai tận dụng được index trên category_id và publish_year (SEARCH USING INDEX), cũng như primary key của bảng authors.',
     ),
     QueryExample(
       title: 'Tối ưu với Covering Index và Subquery',
@@ -136,27 +130,15 @@ class _QueryOptimizationsScreenState extends State<QueryOptimizationsScreen> {
           SELECT id FROM categories 
           WHERE name LIKE '%Fiction%'
         )
-        -- Query plan sẽ hiện:
-        -- SCAN TABLE categories
-        -- SCAN TABLE books
-        -- Subquery phải chạy cho mỗi dòng trong bảng books
       """,
       goodQuery: """
-        -- Đã tạo covering index:
-        -- CREATE INDEX idx_books_cat_price ON books(category_id, title, price)
         SELECT b.title, b.price
         FROM books b
         JOIN categories c ON b.category_id = c.id
         WHERE c.name LIKE 'Fiction%'
-        -- Query plan sẽ hiện:
-        -- SEARCH TABLE categories USING INDEX idx_categories_name
-        -- SEARCH TABLE books USING COVERING INDEX idx_books_cat_price
       """,
       explanation:
-          'Ví dụ về covering index và tránh subquery: '
-          'Truy vấn đầu sử dụng subquery không hiệu quả, phải quét nhiều lần. '
-          'Truy vấn thứ hai tận dụng covering index (bao gồm cả category_id, title và price) '
-          'và JOIN trực tiếp thay vì dùng subquery.',
+          'Ví dụ về covering index và tránh subquery: Truy vấn đầu sử dụng subquery không hiệu quả, phải quét nhiều lần. Truy vấn thứ hai tận dụng covering index (bao gồm cả category_id, title và price) và JOIN trực tiếp thay vì dùng subquery.',
     ),
   ];
 
