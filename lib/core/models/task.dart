@@ -1,6 +1,4 @@
 import 'package:json_annotation/json_annotation.dart';
-import '../services/database_service.dart';
-import '../../config/database_config.dart';
 
 part 'task.g.dart';
 
@@ -15,6 +13,7 @@ class Task {
   final int projectId;
   final int? assignedTo;
   final int createdBy;
+  final int? membershipId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -28,13 +27,14 @@ class Task {
     required this.projectId,
     this.assignedTo,
     required this.createdBy,
+    this.membershipId,
     required this.createdAt,
     required this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
     return {
-      DatabaseConfig.columnId: id,
+      'id': id,
       'title': title,
       'description': description,
       'status': status,
@@ -43,14 +43,15 @@ class Task {
       'project_id': projectId,
       'assigned_to': assignedTo,
       'created_by': createdBy,
-      DatabaseConfig.columnCreatedAt: createdAt.toIso8601String(),
-      DatabaseConfig.columnUpdatedAt: updatedAt.toIso8601String(),
+      if (membershipId != null) 'membership_id': membershipId,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
-      id: map[DatabaseConfig.columnId],
+      id: map['id'],
       title: map['title'],
       description: map['description'],
       status: map['status'],
@@ -59,57 +60,16 @@ class Task {
       projectId: map['project_id'],
       assignedTo: map['assigned_to'],
       createdBy: map['created_by'],
-      createdAt: DateTime.parse(map[DatabaseConfig.columnCreatedAt]),
-      updatedAt: DateTime.parse(map[DatabaseConfig.columnUpdatedAt]),
+      membershipId: map['membership_id'],
+      createdAt: DateTime.parse(map['created_at']),
+      updatedAt: DateTime.parse(map['updated_at']),
     );
   }
 
-  // CRUD Operations
-  static Future<Task> create(Task task) async {
-    final db = await DatabaseService.instance.database;
-    final id = await db.insert(DatabaseConfig.tableTasks, task.toMap());
-    return task.copyWith(id: id);
-  }
-
-  static Future<Task?> read(int id) async {
-    final db = await DatabaseService.instance.database;
-    final maps = await db.query(
-      DatabaseConfig.tableTasks,
-      where: '${DatabaseConfig.columnId} = ?',
-      whereArgs: [id],
-    );
-
-    if (maps.isNotEmpty) {
-      return Task.fromMap(maps.first);
-    }
-    return null;
-  }
-
-  static Future<List<Task>> readAll() async {
-    final db = await DatabaseService.instance.database;
-    final result = await db.query(DatabaseConfig.tableTasks);
-    return result.map((map) => Task.fromMap(map)).toList();
-  }
-
-  static Future<int> update(Task task) async {
-    final db = await DatabaseService.instance.database;
-    return db.update(
-      DatabaseConfig.tableTasks,
-      task.toMap(),
-      where: '${DatabaseConfig.columnId} = ?',
-      whereArgs: [task.id],
-    );
-  }
-
-  static Future<int> delete(int id) async {
-    final db = await DatabaseService.instance.database;
-    return await db.delete(
-      DatabaseConfig.tableTasks,
-      where: '${DatabaseConfig.columnId} = ?',
-      whereArgs: [id],
-    );
-  }
-
+  // Helper methods for JSON serialization
+  factory Task.fromJson(Map<String, dynamic> json) => Task.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
+  
   Task copyWith({
     int? id,
     String? title,
@@ -120,6 +80,7 @@ class Task {
     int? projectId,
     int? assignedTo,
     int? createdBy,
+    int? membershipId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -133,6 +94,7 @@ class Task {
       projectId: projectId ?? this.projectId,
       assignedTo: assignedTo ?? this.assignedTo,
       createdBy: createdBy ?? this.createdBy,
+      membershipId: membershipId ?? this.membershipId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

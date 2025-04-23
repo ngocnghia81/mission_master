@@ -1,0 +1,24 @@
+name: mission_master_server
+description: API Server for Mission Master Project Management App
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  dart_frog: ^1.0.0
+  postgres: ^2.6.2
+  json_annotation: ^4.8.1
+  crypto: ^3.0.3
+  dart_jsonwebtoken: ^2.12.1
+  dotenv: ^4.2.0
+  http: ^1.1.0
+  path: ^1.8.3
+
+dev_dependencies:
+  build_runner: ^2.4.6
+  json_serializable: ^6.7.1
+  mocktail: ^1.0.0
+  test: ^1.24.6
+  very_good_analysis: ^5.1.0
