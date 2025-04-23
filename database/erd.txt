@@ -1,0 +1,159 @@
+@startuml Mission Master ERD
+
+' Định nghĩa các entity
+entity "users" as users {
+  *id : SERIAL <<PK>>
+  --
+  *email : TEXT <<UNIQUE>>
+  *username : TEXT <<UNIQUE>>
+  *password : TEXT
+  *full_name : TEXT
+  *role : TEXT
+  avatar : TEXT
+  *is_active : BOOLEAN
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "projects" as projects {
+  *id : SERIAL <<PK>>
+  --
+  *name : TEXT
+  logo : TEXT
+  description : TEXT
+  *start_date : TIMESTAMP
+  *end_date : TIMESTAMP
+  *status : TEXT
+  *manager_id : INTEGER <<FK>>
+  leader_id : INTEGER <<FK>>
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "project_memberships" as memberships {
+  *id : SERIAL <<PK>>
+  --
+  *user_id : INTEGER <<FK>>
+  *project_id : INTEGER <<FK>>
+  *created_at : TIMESTAMP
+}
+
+entity "tasks" as tasks {
+  *id : SERIAL <<PK>>
+  --
+  *title : TEXT
+  description : TEXT
+  *status : TEXT
+  *priority : TEXT
+  *start_date : TIMESTAMP
+  *due_date : TIMESTAMP
+  completed_date : TIMESTAMP
+  *project_id : INTEGER <<FK>>
+  assigned_to : INTEGER <<FK>>
+  *assigned_by : INTEGER <<FK>>
+  membership_id : INTEGER <<FK>>
+  is_penalty_applied : BOOLEAN
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "comments" as comments {
+  *id : SERIAL <<PK>>
+  --
+  *content : TEXT
+  *task_id : INTEGER <<FK>>
+  *user_id : INTEGER <<FK>>
+  *created_at : TIMESTAMP
+  *updated_at : TIMESTAMP
+}
+
+entity "attachments" as attachments {
+  *id : SERIAL <<PK>>
+  --
+  *file_name : TEXT
+  *file_path : TEXT
+  *file_type : TEXT
+  *project_id : INTEGER <<FK>>
+  task_id : INTEGER <<FK>>
+  *created_at : TIMESTAMP
+}
+
+entity "evaluations" as evaluations {
+  *id : SERIAL <<PK>>
+  --
+  *task_id : INTEGER <<FK>>
+  *attitude_score : INTEGER
+  *quality_score : INTEGER
+  notes : TEXT
+  *created_at : TIMESTAMP
+}
+
+entity "penalties" as penalties {
+  *id : SERIAL <<PK>>
+  --
+  *task_id : INTEGER <<FK>>
+  *amount : REAL
+  *reason : TEXT
+  *days_overdue : INTEGER
+  *is_paid : BOOLEAN
+  *created_at : TIMESTAMP
+}
+
+entity "notifications" as notifications {
+  *id : SERIAL <<PK>>
+  --
+  *user_id : INTEGER <<FK>>
+  *title : TEXT
+  *message : TEXT
+  *type : TEXT
+  related_id : INTEGER
+  *is_read : BOOLEAN
+  *created_at : TIMESTAMP
+}
+
+' Định nghĩa các mối quan hệ
+
+' User có thể quản lý nhiều dự án (1-n)
+users ||--o{ projects : "quản lý (manager_id)"
+
+' User có thể là leader của nhiều dự án (1-n)
+users ||--o{ projects : "lãnh đạo (leader_id)"
+
+' User có thể tham gia nhiều dự án thông qua project_memberships (n-n)
+users ||--o{ memberships
+memberships }o--|| projects
+
+' Dự án có nhiều task (1-n)
+projects ||--o{ tasks : "có"
+
+' User có thể được giao nhiều task (1-n)
+users ||--o{ tasks : "được giao (assigned_to)"
+
+' User có thể giao nhiều task (1-n)
+users ||--o{ tasks : "giao việc (assigned_by)"
+
+' Membership có thể liên kết với nhiều task (1-n)
+memberships ||--o{ tasks : "liên kết"
+
+' Task có thể có nhiều comment (1-n)
+tasks ||--o{ comments : "có"
+
+' User có thể tạo nhiều comment (1-n)
+users ||--o{ comments : "tạo"
+
+' Dự án có thể có nhiều tệp đính kèm (1-n)
+projects ||--o{ attachments : "có"
+
+' Task có thể có nhiều tệp đính kèm (1-n)
+tasks ||--o{ attachments : "có"
+
+' Task có thể có một đánh giá (1-1)
+tasks ||--o| evaluations : "được đánh giá"
+
+' Task có thể có một hình phạt (1-1)
+tasks ||--o| penalties : "bị phạt"
+
+' User có thể nhận nhiều thông báo (1-n)
+users ||--o{ notifications : "nhận"
+
+@enduml
