@@ -9,8 +9,9 @@ Tài liệu này cung cấp hướng dẫn chi tiết về cách thiết lập, 
 3. [Chạy Dự Án](#chạy-dự-án)
 4. [Quy Trình Git và Quản Lý Nhánh](#quy-trình-git-và-quản-lý-nhánh)
 5. [Chiến Lược Tránh Xung Đột (Conflict)](#chiến-lược-tránh-xung-đột-conflict)
-6. [Quy Tắc Coding](#quy-tắc-coding)
-7. [Quy Trình Review Code](#quy-trình-review-code)
+6. [Quản Lý File Cấu Hình](#quản-lý-file-cấu-hình)
+7. [Quy Tắc Coding](#quy-tắc-coding)
+8. [Quy Trình Review Code](#quy-trình-review-code)
 
 ## Cấu Trúc Dự Án
 
@@ -225,6 +226,52 @@ Future<List<User>> getUsersByRole(String role) async {
 - Luôn xử lý các exception
 - Sử dụng try-catch trong các hàm async
 - Trả về message lỗi rõ ràng
+
+## Quản Lý File Cấu Hình
+
+Để tránh xung đột khi nhiều người cùng làm việc trên dự án, chúng ta sẽ quản lý các file cấu hình như sau:
+
+### 1. Nguyên tắc chung:
+
+- **Không commit file cấu hình cá nhân**: Các file cấu hình chứa thông tin cá nhân (database credentials, API keys) không nên được commit lên repository
+- **Sử dụng file template**: Mỗi file cấu hình cần có một file template tương ứng được commit lên repository
+- **Sử dụng .gitignore**: Các file cấu hình cá nhân được thêm vào .gitignore để tránh vô tình commit
+
+### 2. Quy trình thiết lập cấu hình:
+
+Khi clone repository hoặc pull về các thay đổi mới, thực hiện các bước sau:
+
+```bash
+# Chạy script thiết lập cấu hình
+cd dart_frog_server
+dart scripts/setup_config.dart
+```
+
+Script này sẽ:
+- Kiểm tra xem file cấu hình đã tồn tại chưa
+- Nếu chưa, sẽ tạo file cấu hình từ template
+- Sau đó bạn cần chỉnh sửa file cấu hình theo môi trường cá nhân
+
+### 3. Các file cấu hình cần quản lý:
+
+- **Database config**: `dart_frog_server/lib/config/database_config.dart`
+  - Template: `dart_frog_server/lib/config/database_config.template.dart`
+  - Chứa thông tin kết nối database (host, port, username, password)
+
+- **Environment variables**: `.env` files
+  - Template: `.env.example`
+  - Chứa các biến môi trường như API keys, secrets
+
+### 4. Khi cần thay đổi cấu hình:
+
+Nếu cần thay đổi cấu trúc của file cấu hình (thêm field mới, thay đổi logic):
+
+1. Thay đổi file template trước
+2. Commit file template lên repository
+3. Thông báo cho team về thay đổi
+4. Mỗi thành viên sẽ cập nhật file cấu hình cá nhân của họ
+
+Quy trình này giúp đảm bảo mỗi thành viên trong team có thể có cấu hình riêng phù hợp với môi trường phát triển cá nhân mà không gây xung đột khi pull code.
 
 ## Quy Trình Review Code
 

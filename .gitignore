@@ -17,10 +17,8 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code related
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -32,6 +30,14 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+**/build/
+**/.dart_tool/
+
+# Dart Frog related
+dart_frog_server/.dart_tool/
+dart_frog_server/build/
+dart_frog_server/.dev_server_pid
+dart_frog_server/.dev_server_port
 
 # Symbolication related
 app.*.symbols
@@ -51,4 +57,36 @@ app.*.map.json
 
 # Local environment files
 .env
+.env.*
 .env.local
+.env.development
+.env.test
+.env.production
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# Platform specific files that might differ between developers
+ios/Podfile.lock
+macos/Podfile.lock
+
+# Local configuration files
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase_options.dart
+
+# Dart Frog server configuration that might be different for each developer
+dart_frog_server/.env
+dart_frog_server/config/*.local.yaml
+
+# Local database configuration
+dart_frog_server/config/database.local.yaml
+dart_frog_server/lib/config/database_config.dart
+
+# Coverage reports
+coverage/
+.test_coverage.dart
+
+# Mason brick files
+.mason/
