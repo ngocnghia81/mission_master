@@ -1,3 +1,5 @@
+import 'package:mission_master/data/database_service.dart';
+
 import '../../core/models/user.dart';
 import '../../core/repositories/user_repository.dart';
 import 'base_postgres_repository.dart';

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mission_master/core/config/database_config.dart';
 import 'package:mission_master/core/models/task.dart';
 import 'package:mission_master/core/models/user.dart';
-import 'package:mission_master/core/services/database_service.dart';
 import 'package:mission_master/core/theme/app_colors.dart';
 import 'package:mission_master/shared/widgets/app_bar_widget.dart';
 import 'package:mission_master/shared/widgets/bottom_nav_bar.dart';
+import 'package:mission_master/services/api_service.dart';
 import 'package:intl/intl.dart';
 
 class TaskListScreen extends StatefulWidget {
@@ -34,20 +33,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
     });
 
     try {
-      final db = await DatabaseService.instance.database;
+      final api = ApiService.instance;
 
-      // Load current user (tạm thời lấy người dùng đầu tiên làm demo)
-      final usersResult = await db.query(DatabaseConfig.tableUsers);
-      if (usersResult.isNotEmpty) {
-        _currentUser = User.fromMap(usersResult.first);
+      // Load users từ API
+      final usersData = await api.getUsers();
+      _users = usersData.map((map) => User.fromMap(map)).toList();
+      
+      // Lấy người dùng đầu tiên làm demo
+      if (_users.isNotEmpty) {
+        _currentUser = _users.first;
       }
 
-      // Load all users
-      _users = usersResult.map((map) => User.fromMap(map)).toList();
-
-      // Load tasks - có thể lọc theo người dùng hiện tại nếu cần
-      final tasksResult = await db.query(DatabaseConfig.tableTasks);
-      _tasks = tasksResult.map((map) => Task.fromMap(map)).toList();
+      // Load tasks từ API
+      final tasksData = await api.getTasks();
+      _tasks = tasksData.map((map) => Task.fromMap(map)).toList();
 
       setState(() {
         _isLoading = false;

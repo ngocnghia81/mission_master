@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mission_master/core/config/database_config.dart';
+import 'package:mission_master/config/database_config.dart';
 import 'package:mission_master/core/models/project.dart' hide ProjectStatus;
 import 'package:mission_master/core/models/project.dart' as project_model
     show ProjectStatus;
@@ -12,6 +12,7 @@ import 'package:mission_master/shared/widgets/app_bar_widget.dart';
 import 'package:mission_master/shared/widgets/bottom_nav_bar.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:mission_master/services/api_service.dart';
 
 class ProjectListScreen extends StatefulWidget {
   const ProjectListScreen({Key? key}) : super(key: key);
@@ -22,8 +23,8 @@ class ProjectListScreen extends StatefulWidget {
 
 class _ProjectListScreenState extends State<ProjectListScreen> {
   BottomNavItem _currentNavItem = BottomNavItem.projects;
-  List<Project> _projects = [];
-  List<User> _users = []; // Để hiển thị tên quản lý và leader
+  List<Map<String, dynamic>> _projects = [];
+  List<Map<String, dynamic>> _users = []; // Để hiển thị tên quản lý và leader
   bool _isLoading = true;
   User? _currentUser; // Người dùng hiện tại (để kiểm tra quyền)
 
@@ -45,35 +46,43 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     });
 
     try {
-      final db = await DatabaseService.instance.database;
-
-      // Load current user (tạm thời lấy người dùng đầu tiên làm demo)
-      final usersResult = await db.query(DatabaseConfig.tableUsers);
-      if (usersResult.isNotEmpty) {
-        _currentUser = User.fromMap(usersResult.first);
-      }
-
-      // Load all users
-      _users = usersResult.map((map) => User.fromMap(map)).toList();
-
-      // Load projects
-      final projectsResult = await db.query(DatabaseConfig.tableProjects);
-      _projects = projectsResult.map((map) => Project.fromMap(map)).toList();
-
+      // Lấy dữ liệu từ API
+      final apiService = ApiService.instance;
+      
+      // Lấy danh sách người dùng
+      final users = await apiService.getUsers();
+      
+      // Lưu danh sách người dùng
       setState(() {
+        _users = users;
+      });
+      
+      // Lấy danh sách dự án
+      final projects = await apiService.getProjects();
+      
+      // Lưu danh sách dự án
+      setState(() {
+        _projects = projects;
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading data: $e');
       setState(() {
         _isLoading = false;
       });
+      
+      // Hiển thị thông báo lỗi
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}'))
+      );
     }
   }
 
   // Lọc dự án dựa trên ngày được chọn và bộ lọc
   List<Project> _getFilteredProjects() {
-    return _projects.where((project) {
+    return _projects.map((projectMap) {
+      // Chuyển đổi Map<String, dynamic> thành Project
+      return Project.fromMap(projectMap);
+    }).where((project) {
       // Lọc theo ngày
       final projectStartDate = DateTime.parse(project.startDate);
       final isSameDay = projectStartDate.year == _selectedDate.year &&
@@ -95,7 +104,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       } else if (_selectedFilter == 'Xong') {
         return project.status == project_model.ProjectStatus.completed.value;
       }
-
+      
       return true;
     }).toList();
   }
@@ -125,19 +134,17 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   // Tìm tên người dùng dựa vào ID
   String _getUserName(int? userId) {
     if (userId == null) return 'N/A';
-    final user = _users.firstWhere(
-      (user) => user.id == userId,
-      orElse: () => User(
-        email: '',
-        username: '',
-        fullName: 'Không tìm thấy',
-        role: '',
-        isActive: false,
-        createdAt: '',
-        updatedAt: '',
-      ),
+    
+    // Tìm người dùng trong danh sách Map<String, dynamic>
+    final userMap = _users.firstWhere(
+      (user) => user['id'] == userId,
+      orElse: () => {
+        'full_name': 'Không tìm thấy'
+      },
     );
-    return user.fullName;
+    
+    // Trả về tên người dùng
+    return userMap['full_name'] ?? 'N/A';
   }
 
   // Mở màn hình tạo dự án mới

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mission_master/core/config/database_config.dart';
+import 'package:mission_master/config/database_config.dart';
 import 'package:mission_master/core/models/role.dart';
 import 'package:mission_master/core/models/user.dart';
 import 'package:mission_master/core/services/database_service.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mission_master/core/services/database_service.dart';
-import 'package:mission_master/features/auth/screens/login_screen.dart';
-import 'package:mission_master/core/config/database_config.dart';
+import 'package:flutter/gestures.dart';
+import 'package:mission_master/services/api_service.dart';
+import 'package:mission_master/core/models/user.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -34,58 +34,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() async {
+  Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
-        _errorMessage = '';
+        _errorMessage = null;
       });
 
       try {
-        final db = await DatabaseService.instance.database;
+        // Sử dụng API đăng ký mới
+        final api = ApiService.instance;
+        
+        // Chuẩn bị dữ liệu đăng ký
+        final userData = {
+          'username': _usernameController.text,
+          'email': _emailController.text,
+          'password': _passwordController.text, // Mật khẩu sẽ được mã hóa bởi API
+          'full_name': _fullNameController.text,
+          'role': 'employee', // Mặc định là nhân viên
+        };
+        
+        // Gọi API đăng ký
+        final response = await api.register(userData);
+        
+        // In thông tin đăng ký thành công
+        print('Registration successful: ${response['user']}');
 
-        // Kiểm tra email và username đã tồn tại chưa
-        final existingUsers = await db.query(
-          DatabaseConfig.tableUsers,
-          where: 'email = ? OR username = ?',
-          whereArgs: [_emailController.text, _usernameController.text],
-        );
-
-        if (existingUsers.isNotEmpty) {
-          setState(() {
-            _errorMessage = 'Email hoặc tên đăng nhập đã tồn tại';
-            _isLoading = false;
-          });
-          return;
-        }
-
-        // Thêm người dùng mới vào database
-        final id = await db.insert(
-          DatabaseConfig.tableUsers,
-          {
-            'email': _emailController.text,
-            'username': _usernameController.text,
-            'password':
-                _passwordController.text, // Trong thực tế cần hash password
-            'full_name': _fullNameController.text,
-            'role': _role, // Sử dụng role mặc định
-            'phone': _phoneController.text,
-            'is_active': 1,
-            DatabaseConfig.columnCreatedAt: DateTime.now().toIso8601String(),
-            DatabaseConfig.columnUpdatedAt: DateTime.now().toIso8601String(),
-          },
+        // Hiển thị thông báo thành công
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Tạo tài khoản thành công!')),
         );
 
         // Đăng ký thành công, chuyển đến màn hình đăng nhập
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/login');
       } catch (e) {
         setState(() {
           _errorMessage = 'Đã xảy ra lỗi: ${e.toString()}';
           _isLoading = false;
         });
+        print('Registration error: $e');
       }
     }
   }
@@ -232,7 +219,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     : SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _handleRegister,
+                          onPressed: _register,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF00BCD4),
                             padding: EdgeInsets.symmetric(vertical: 15),
@@ -253,10 +240,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 15),
                 TextButton(
                   onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => LoginScreen()),
-                    );
+                    Navigator.pushReplacementNamed(context, '/login');
                   },
                   child: Text.rich(
                     TextSpan(

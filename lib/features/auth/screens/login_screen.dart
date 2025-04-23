@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mission_master/core/services/database_service.dart';
 import 'package:mission_master/features/auth/screens/register_screen.dart';
 import 'package:mission_master/features/home/screens/calendar_task_screen.dart';
-import 'package:mission_master/core/config/database_config.dart';
+import 'package:mission_master/services/api_service.dart';
+import 'package:mission_master/core/models/user.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() async {
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -31,37 +31,28 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        final db = await DatabaseService.instance.database;
-
-        // Kiểm tra thông tin đăng nhập
-        final users = await db.query(
-          DatabaseConfig.tableUsers,
-          where:
-              '(username = ? OR email = ?) AND password = ? AND is_active = 1',
-          whereArgs: [
-            _usernameController.text,
-            _usernameController.text,
-            _passwordController.text
-          ],
+        // Sử dụng API đăng nhập mới
+        final api = ApiService.instance;
+        final response = await api.login(
+          _usernameController.text,
+          _passwordController.text,
         );
-
-        if (users.isEmpty) {
-          setState(() {
-            _errorMessage = 'Tài khoản hoặc mật khẩu không chính xác';
-            _isLoading = false;
-          });
-        } else {
-          // Đăng nhập thành công, chuyển đến màn hình chính
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => CalendarTaskScreen()),
-          );
-        }
+        
+        // Xử lý kết quả đăng nhập
+        final userData = response['user'];
+        print('Login successful: $userData');
+        
+        // Lưu thông tin người dùng vào bộ nhớ tạm thời (có thể sử dụng SharedPreferences)
+        // TODO: Lưu thông tin người dùng để sử dụng trong các màn hình khác
+        
+        // Đăng nhập thành công, chuyển đến màn hình chính
+        Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
         setState(() {
-          _errorMessage = 'Đã xảy ra lỗi: ${e.toString()}';
+          _errorMessage = 'Lỗi đăng nhập: $e';
           _isLoading = false;
         });
+        print('Login error: $e');
       }
     }
   }
@@ -135,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       : SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _handleLogin,
+                            onPressed: _login,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF00BCD4),
                               padding: EdgeInsets.symmetric(vertical: 15),

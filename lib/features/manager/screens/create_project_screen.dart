@@ -1,18 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:mission_master/core/config/database_config.dart';
-import 'package:mission_master/core/models/project.dart';
-import 'package:mission_master/core/models/project_membership.dart';
-import 'package:mission_master/core/models/user.dart';
-import 'package:mission_master/core/services/database_service.dart';
 import 'package:mission_master/core/theme/app_colors.dart';
+import 'package:mission_master/features/home/screens/calendar_task_screen.dart';
+import 'package:mission_master/features/projects/screens/project_list_screen.dart';
 import 'package:mission_master/shared/widgets/app_bar_widget.dart';
 import 'package:mission_master/shared/widgets/bottom_nav_bar.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:mission_master/core/models/user.dart';
+import 'package:mission_master/core/models/project.dart';
+import 'package:mission_master/core/models/project_membership.dart';
+import 'package:mission_master/services/api_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class CreateProjectScreen extends StatefulWidget {
   final User currentUser;
@@ -67,17 +70,16 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
   Future<void> _loadEmployees() async {
     try {
-      final db = await DatabaseService.instance.database;
+      final api = ApiService.instance;
 
-      // Lấy danh sách nhân viên (role = 'employee')
-      final result = await db.query(
-        DatabaseConfig.tableUsers,
-        where: 'role = ?',
-        whereArgs: ['employee'],
-      );
+      // Lấy danh sách người dùng từ API
+      final usersData = await api.getUsers();
+      
+      // Lọc ra những người dùng có role là employee (role_id = 3)
+      final employeeUsers = usersData.where((user) => user['role_id'] == 3).toList();
 
       setState(() {
-        _employees = result.map((e) => User.fromMap(e)).toList();
+        _employees = employeeUsers.map((e) => User.fromMap(e)).toList();
         _filteredEmployees = _employees;
       });
     } catch (e) {
@@ -207,81 +209,67 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   }
 
   Future<void> _saveProject() async {
-    // Xác thực đã chọn ít nhất 1 nhân viên
-    if (_selectedEmployees.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('Vui lòng chọn ít nhất một nhân viên tham gia dự án')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final db = await DatabaseService.instance.database;
-
-      // Bắt đầu transaction
-      await db.transaction((txn) async {
-        // 1. Tạo dự án mới
-        final project = Project(
-          name: _nameController.text.trim(),
-          description: _descriptionController.text.trim(),
-          startDate: _startDate.toIso8601String(),
-          endDate: _endDate.toIso8601String(),
-          status: _status,
-          managerId: widget.currentUser.id, // Người tạo là manager
-          leaderId: _leaderId, // Team leader được chọn
-          createdAt: DateTime.now().toIso8601String(),
-          updatedAt: DateTime.now().toIso8601String(),
-          logo: _logoBase64,
-        );
-
-        // 2. Lưu dự án vào database
-        final projectId = await txn.insert(
-          DatabaseConfig.tableProjects,
-          project.toMap(),
-        );
-
-        // 3. Thêm các thành viên được chọn vào project_memberships
-        for (var employee in _selectedEmployees) {
-          final membership = ProjectMembership(
-            projectId: projectId,
-            userId: employee.id!,
-            createdAt: DateTime.now().toIso8601String(),
-          );
-
-          await txn.insert(
-            DatabaseConfig.tableProjectMemberships,
-            membership.toMap(),
-          );
-        }
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
       });
 
-      // Hiển thị thông báo thành công
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Dự án đã được tạo thành công')),
-        );
+      try {
+        final api = ApiService.instance;
 
-        // Quay lại màn hình trước
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      print('Error creating project: $e');
-      if (mounted) {
+        // 1. Tạo dự án mới thông qua API
+        final projectData = {
+          'name': _nameController.text,
+          'description': _descriptionController.text,
+          'start_date': _startDate.toIso8601String(),
+          'end_date': _endDate.toIso8601String(),
+          'status': _status,
+          'manager_id': widget.currentUser.id,
+          'logo': null, // Có thể thêm tính năng upload logo sau
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          // Thêm thông tin về các thành viên dự án
+          'members': [
+            // Người quản lý (người tạo dự án)
+            {
+              'user_id': widget.currentUser.id,
+              'role': 'manager',
+              'is_leader': true
+            },
+            // Các nhân viên được chọn
+            ..._selectedEmployees.map((employee) => {
+              'user_id': employee.id,
+              'role': 'member',
+              'is_leader': _leaderId == employee.id
+            }).toList()
+          ]
+        };
+        
+        // Gọi API để tạo dự án mới
+        final createdProject = await api.createProject(projectData);
+
+        // Hiển thị thông báo thành công
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Dự án đã được tạo thành công')),
+          );
+
+          // Chuyển hướng đến màn hình danh sách dự án
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ProjectListScreen()),
+          );
+        }
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi khi tạo dự án: $e')),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }

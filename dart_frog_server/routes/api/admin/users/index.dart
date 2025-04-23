@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:dart_frog/dart_frog.dart';
+import 'package:crypto/crypto.dart';
+import 'package:bcrypt/bcrypt.dart';
 import '../../../../lib/services/database_service.dart';
 import '../../../../lib/utils/json_utils.dart';
 
@@ -19,8 +22,8 @@ Future<Response> onRequest(RequestContext context) async {
   
   switch (context.request.method) {
     case HttpMethod.get:
-      // Lấy danh sách người dùng
-      final users = await db.query('SELECT * FROM users WHERE role = @role', {'role': 'admin'});
+      // Lấy danh sách tất cả người dùng
+      final users = await db.query('SELECT * FROM users');
       // Chuyển đổi DateTime thành chuỗi trước khi trả về JSON
       final jsonUsers = JsonUtils.convertListToJson(users);
       return Response.json(body: jsonUsers);
@@ -54,22 +57,24 @@ Future<Response> onRequest(RequestContext context) async {
           );
         }
         
-        // Thêm người dùng mới
+        // Mã hóa mật khẩu trước khi lưu vào database sử dụng bcrypt
+        final passwordHash = BCrypt.hashpw(data['password'], BCrypt.gensalt());
+        
+        // Tạo người dùng mới
         final userId = await db.insert(
           '''
-          INSERT INTO users (
-            email, username, password, full_name, role, is_active, created_at, updated_at
-          ) VALUES (
-            @email, @username, @password, @fullName, @role, @isActive, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-          )
+          INSERT INTO users (email, username, password, full_name, role, is_active, created_at, updated_at)
+          VALUES (@email, @username, @password, @full_name, @role, @is_active, @created_at, @updated_at)
           ''',
           {
             'email': data['email'],
             'username': data['username'],
-            'password': data['password'], // Trong thực tế cần hash password
-            'fullName': data['full_name'],
+            'password': passwordHash,
+            'full_name': data['full_name'],
             'role': data['role'],
-            'isActive': data['is_active'] ?? true,
+            'is_active': true,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
           },
         );
         

@@ -9,6 +9,8 @@ import 'package:dart_frog/dart_frog.dart';
 import '../routes/api/tasks/attachments/index.dart' as api_tasks_attachments_index;
 import '../routes/api/manager/projects/index.dart' as api_manager_projects_index;
 import '../routes/api/employee/tasks/index.dart' as api_employee_tasks_index;
+import '../routes/api/auth/register/index.dart' as api_auth_register_index;
+import '../routes/api/auth/login/index.dart' as api_auth_login_index;
 import '../routes/api/admin/users/index.dart' as api_admin_users_index;
 
 import '../routes/_middleware.dart' as middleware;
@@ -28,6 +30,8 @@ Handler buildRootHandler() {
   final pipeline = const Pipeline().addMiddleware(middleware.middleware);
   final router = Router()
     ..mount('/api/admin/users', (context) => buildApiAdminUsersHandler()(context))
+    ..mount('/api/auth/login', (context) => buildApiAuthLoginHandler()(context))
+    ..mount('/api/auth/register', (context) => buildApiAuthRegisterHandler()(context))
     ..mount('/api/employee/tasks', (context) => buildApiEmployeeTasksHandler()(context))
     ..mount('/api/manager/projects', (context) => buildApiManagerProjectsHandler()(context))
     ..mount('/api/tasks/attachments', (context) => buildApiTasksAttachmentsHandler()(context));
@@ -38,6 +42,20 @@ Handler buildApiAdminUsersHandler() {
   final pipeline = const Pipeline();
   final router = Router()
     ..all('/', (context) => api_admin_users_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiAuthLoginHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_auth_login_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiAuthRegisterHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_auth_register_index.onRequest(context,));
   return pipeline.addHandler(router);
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/models/task.dart';
+import '../../services/api_service.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -26,7 +27,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
     });
 
     try {
-      final tasks = await Task.readAll();
+      // Sử dụng ApiService để lấy danh sách tasks
+      final api = ApiService.instance;
+      final tasksData = await api.getTasks();
+      
+      // Chuyển đổi từ Map<String, dynamic> sang Task
+      final tasks = tasksData.map((data) => Task.fromMap(data)).toList();
+      
       setState(() {
         _tasks = tasks;
         _isLoading = false;
@@ -52,7 +59,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
         updatedAt: DateTime.now(),
       );
 
-      await Task.create(task);
+      // Sử dụng ApiService để tạo task mới
+      final api = ApiService.instance;
+      await api.createTask(task.toMap());
+      
+      // Tải lại danh sách tasks
       _loadTasks();
     } catch (e) {
       setState(() {
