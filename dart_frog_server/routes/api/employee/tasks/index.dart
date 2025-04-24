@@ -20,9 +20,14 @@ Future<Response> onRequest(RequestContext context) async {
   switch (context.request.method) {
     case HttpMethod.get:
       try {
-        // Lấy danh sách nhiệm vụ được giao cho employee
+        // Lấy danh sách nhiệm vụ được giao cho employee thông qua project_memberships
         final tasks = await db.query(
-          'SELECT * FROM tasks WHERE assigned_to = @employeeId',
+          '''
+          SELECT t.* 
+          FROM tasks t
+          JOIN project_memberships pm ON t.membership_id = pm.id
+          WHERE pm.user_id = @employeeId
+          ''',
           {'employeeId': employeeId},
         );
         // Chuyển đổi DateTime thành chuỗi trước khi trả về JSON
