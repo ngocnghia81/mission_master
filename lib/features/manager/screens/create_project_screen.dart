@@ -14,7 +14,6 @@ import 'package:mission_master/core/models/user.dart';
 import 'package:mission_master/core/models/project.dart';
 import 'package:mission_master/core/models/project_membership.dart';
 import 'package:mission_master/services/api_service.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
 class CreateProjectScreen extends StatefulWidget {

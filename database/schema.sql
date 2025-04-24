@@ -54,8 +54,6 @@ CREATE TABLE tasks (
     due_date TIMESTAMP NOT NULL,
     completed_date TIMESTAMP,
     project_id INTEGER NOT NULL REFERENCES projects(id),
-    assigned_to INTEGER REFERENCES users(id),
-    assigned_by INTEGER NOT NULL REFERENCES users(id),
     membership_id INTEGER REFERENCES project_memberships(id),
     is_penalty_applied BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -122,8 +120,6 @@ CREATE INDEX idx_projects_leader_id ON projects(leader_id);
 CREATE INDEX idx_project_memberships_user_id ON project_memberships(user_id);
 CREATE INDEX idx_project_memberships_project_id ON project_memberships(project_id);
 CREATE INDEX idx_tasks_project_id ON tasks(project_id);
-CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to);
-CREATE INDEX idx_tasks_assigned_by ON tasks(assigned_by);
 CREATE INDEX idx_comments_task_id ON comments(task_id);
 CREATE INDEX idx_comments_user_id ON comments(user_id);
 CREATE INDEX idx_attachments_project_id ON attachments(project_id);

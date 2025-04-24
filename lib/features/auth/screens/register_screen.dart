@@ -44,19 +44,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       try {
         // Sử dụng API đăng ký mới
         final api = ApiService.instance;
-        
+
         // Chuẩn bị dữ liệu đăng ký
         final userData = {
           'username': _usernameController.text,
           'email': _emailController.text,
-          'password': _passwordController.text, // Mật khẩu sẽ được mã hóa bởi API
+          'password':
+              _passwordController.text, // Mật khẩu sẽ được mã hóa bởi API
           'full_name': _fullNameController.text,
           'role': 'employee', // Mặc định là nhân viên
         };
-        
+
         // Gọi API đăng ký
         final response = await api.register(userData);
-        
+
         // In thông tin đăng ký thành công
         print('Registration successful: ${response['user']}');
 

@@ -49,8 +49,6 @@ entity "tasks" as tasks {
   *due_date : TIMESTAMP
   completed_date : TIMESTAMP
   *project_id : INTEGER <<FK>>
-  assigned_to : INTEGER <<FK>>
-  *assigned_by : INTEGER <<FK>>
   membership_id : INTEGER <<FK>>
   is_penalty_applied : BOOLEAN
   *created_at : TIMESTAMP
@@ -126,11 +124,7 @@ memberships }o--|| projects
 ' Dự án có nhiều task (1-n)
 projects ||--o{ tasks : "có"
 
-' User có thể được giao nhiều task (1-n)
-users ||--o{ tasks : "được giao (assigned_to)"
-
-' User có thể giao nhiều task (1-n)
-users ||--o{ tasks : "giao việc (assigned_by)"
+' Mối quan hệ giữa user và task được quản lý thông qua project_memberships
 
 ' Membership có thể liên kết với nhiều task (1-n)
 memberships ||--o{ tasks : "liên kết"
