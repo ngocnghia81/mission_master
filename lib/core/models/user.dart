@@ -30,25 +30,57 @@ class User {
   });
 
   // Từ JSON thành User
-  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+  factory User.fromJson(Map<String, dynamic> json) {
+    try {
+      // Debug print to check the structure of the json
+      print('Creating User from json: $json');
+      
+      // Handle potential null values safely
+      return User(
+        id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? ''),
+        email: json['email'] as String,
+        username: json['username'] as String,
+        fullName: json['full_name'] as String,
+        role: json['role'] as String,
+        avatar: json['avatar'] as String?,  // Already nullable
+        phone: json['phone'] as String?,    // Already nullable
+        isActive: json['is_active'] as bool,
+        createdAt: json['created_at'] as String,
+        updatedAt: json['updated_at'] as String,
+      );
+    } catch (e) {
+      print('Error creating User from json: $e');
+      print('JSON data: $json');
+      rethrow;
+    }
+  }
 
   // Từ User thành JSON
   Map<String, dynamic> toJson() => _$UserToJson(this);
 
   // Từ Map trong database thành User
   factory User.fromMap(Map<String, dynamic> map) {
-    return User(
-      id: map['id'] as int?,
-      email: map['email'] as String,
-      username: map['username'] as String,
-      fullName: map['full_name'] as String,
-      role: map['role'] as String,
-      avatar: map['avatar'] as String?,
-      phone: map['phone'] as String?,
-      isActive: map['is_active'] as bool,
-      createdAt: map['created_at'] as String,
-      updatedAt: map['updated_at'] as String,
-    );
+    try {
+      // Debug print to check the structure of the map
+      print('Creating User from map: $map');
+      
+      return User(
+        id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+        email: map['email'] as String,
+        username: map['username'] as String,
+        fullName: map['full_name'] as String,
+        role: map['role'] as String,
+        avatar: map['avatar'] as String?,
+        phone: map['phone'] as String?,
+        isActive: map['is_active'] as bool,
+        createdAt: map['created_at'] as String,
+        updatedAt: map['updated_at'] as String,
+      );
+    } catch (e) {
+      print('Error creating User from map: $e');
+      print('Map data: $map');
+      rethrow;
+    }
   }
 
   // Từ User thành Map cho database

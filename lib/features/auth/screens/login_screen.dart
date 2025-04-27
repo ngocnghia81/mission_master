@@ -37,16 +37,31 @@ class _LoginScreenState extends State<LoginScreen> {
           _usernameController.text,
           _passwordController.text,
         );
-        
+
         // Xử lý kết quả đăng nhập
         final userData = response['user'];
         print('Login successful: $userData');
         
-        // Lưu thông tin người dùng vào bộ nhớ tạm thời (có thể sử dụng SharedPreferences)
-        // TODO: Lưu thông tin người dùng để sử dụng trong các màn hình khác
-        
-        // Đăng nhập thành công, chuyển đến màn hình chính
-        Navigator.pushReplacementNamed(context, '/home');
+        try {
+          // Tạo đối tượng User từ dữ liệu trả về
+          final user = User.fromJson(userData);
+          
+          // Lưu thông tin người dùng vào bộ nhớ tạm thời (có thể sử dụng SharedPreferences)
+          // TODO: Lưu thông tin người dùng để sử dụng trong các màn hình khác
+
+          // Chuyển hướng dựa trên vai trò của người dùng
+          if (user.isAdmin) {
+            Navigator.pushReplacementNamed(context, '/admin/dashboard');
+          } else if (user.isManager) {
+            Navigator.pushReplacementNamed(context, '/projects');
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        } catch (userError) {
+          print('Error creating user object: $userError');
+          // Fallback to home screen if there's an error with user parsing
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } catch (e) {
         setState(() {
           _errorMessage = 'Lỗi đăng nhập: $e';

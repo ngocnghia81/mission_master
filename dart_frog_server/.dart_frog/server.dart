@@ -12,6 +12,10 @@ import '../routes/api/employee/tasks/index.dart' as api_employee_tasks_index;
 import '../routes/api/auth/register/index.dart' as api_auth_register_index;
 import '../routes/api/auth/login/index.dart' as api_auth_login_index;
 import '../routes/api/admin/users/index.dart' as api_admin_users_index;
+import '../routes/api/admin/users/[id]/status.dart' as api_admin_users_$id_status;
+import '../routes/api/admin/users/[id]/tasks/index.dart' as api_admin_users_$id_tasks_index;
+import '../routes/api/admin/users/[id]/tasks/statistics/index.dart' as api_admin_users_$id_tasks_statistics_index;
+import '../routes/api/admin/users/[id]/tasks/count/index.dart' as api_admin_users_$id_tasks_count_index;
 
 import '../routes/_middleware.dart' as middleware;
 
@@ -29,12 +33,44 @@ Future<HttpServer> createServer(InternetAddress address, int port) {
 Handler buildRootHandler() {
   final pipeline = const Pipeline().addMiddleware(middleware.middleware);
   final router = Router()
+    ..mount('/api/admin/users/<id>/tasks/count', (context,id,) => buildApiAdminUsers$idTasksCountHandler(id,)(context))
+    ..mount('/api/admin/users/<id>/tasks/statistics', (context,id,) => buildApiAdminUsers$idTasksStatisticsHandler(id,)(context))
+    ..mount('/api/admin/users/<id>/tasks', (context,id,) => buildApiAdminUsers$idTasksHandler(id,)(context))
+    ..mount('/api/admin/users/<id>', (context,id,) => buildApiAdminUsers$idHandler(id,)(context))
     ..mount('/api/admin/users', (context) => buildApiAdminUsersHandler()(context))
     ..mount('/api/auth/login', (context) => buildApiAuthLoginHandler()(context))
     ..mount('/api/auth/register', (context) => buildApiAuthRegisterHandler()(context))
     ..mount('/api/employee/tasks', (context) => buildApiEmployeeTasksHandler()(context))
     ..mount('/api/manager/projects', (context) => buildApiManagerProjectsHandler()(context))
     ..mount('/api/tasks/attachments', (context) => buildApiTasksAttachmentsHandler()(context));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiAdminUsers$idTasksCountHandler(String id,) {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_admin_users_$id_tasks_count_index.onRequest(context,id,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiAdminUsers$idTasksStatisticsHandler(String id,) {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_admin_users_$id_tasks_statistics_index.onRequest(context,id,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiAdminUsers$idTasksHandler(String id,) {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_admin_users_$id_tasks_index.onRequest(context,id,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiAdminUsers$idHandler(String id,) {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/status', (context) => api_admin_users_$id_status.onRequest(context,id,));
   return pipeline.addHandler(router);
 }
 
