@@ -29,11 +29,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
     try {
       // Sử dụng ApiService để lấy danh sách tasks
       final api = ApiService.instance;
-      final tasksData = await api.getTasks();
-      
+      final tasksData = await api.getTasks(4); // Giả sử employeeId = 4
+
       // Chuyển đổi từ Map<String, dynamic> sang Task
       final tasks = tasksData.map((data) => Task.fromMap(data)).toList();
-      
+
       setState(() {
         _tasks = tasks;
         _isLoading = false;
@@ -62,7 +62,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       // Sử dụng ApiService để tạo task mới
       final api = ApiService.instance;
       await api.createTask(task.toMap());
-      
+
       // Tải lại danh sách tasks
       _loadTasks();
     } catch (e) {
