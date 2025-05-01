@@ -21,6 +21,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
   bool _isLoading = true;
   User? _currentUser; // Người dùng hiện tại
 
+  // Danh sách bottom nav bar
+  final List<BottomNavItem> _navItems = [
+    BottomNavItem.home,
+    BottomNavItem.projects,
+    BottomNavItem.tasks,
+    BottomNavItem.profile,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -38,14 +46,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
       // Load users từ API
       final usersData = await api.getUsers();
       _users = usersData.map((map) => User.fromMap(map)).toList();
-      
+
       // Lấy người dùng đầu tiên làm demo
       if (_users.isNotEmpty) {
         _currentUser = _users.first;
       }
 
       // Load tasks từ API
-      final tasksData = await api.getTasks();
+      final tasksData = await api.getTasks(4); // Giả sử employeeId = 4
       _tasks = tasksData.map((map) => Task.fromMap(map)).toList();
 
       setState(() {
@@ -289,6 +297,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       bottomNavigationBar: BottomNavBarWidget(
         currentItem: _currentNavItem,
         onItemSelected: _handleNavItemSelected,
+        items: _navItems,
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryMedium,

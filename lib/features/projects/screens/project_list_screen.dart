@@ -34,6 +34,14 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   String _selectedFilter = 'Tất cả';
   final List<String> _filters = ['Tất cả', 'Cần làm', 'Đang làm', 'Xong'];
 
+  // Danh sách bottom nav bar
+  final List<BottomNavItem> _navItems = [
+    BottomNavItem.home,
+    BottomNavItem.projects,
+    BottomNavItem.tasks,
+    BottomNavItem.profile,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -226,7 +234,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7F8),
       appBar: AppBarWidget(
-        title: 'Dự Án',
+        title: 'project_list_screen.dart',
         showBackButton: false,
       ),
       body: _isLoading
@@ -244,6 +252,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       bottomNavigationBar: BottomNavBarWidget(
         currentItem: _currentNavItem,
         onItemSelected: _handleNavItemSelected,
+        items: _navItems,
       ),
     );
   }

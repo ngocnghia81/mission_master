@@ -23,6 +23,14 @@ class _CalendarTaskScreenState extends State<CalendarTaskScreen> {
   // Dùng để lưu trữ nhiệm vụ từ backend sau này
   List<Task> _tasks = [];
 
+  // Danh sách các item trong bottom nav bar
+  final List<BottomNavItem> _navItems = [
+    BottomNavItem.home,
+    BottomNavItem.projects,
+    BottomNavItem.tasks,
+    BottomNavItem.profile,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -79,7 +87,7 @@ class _CalendarTaskScreenState extends State<CalendarTaskScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7F8),
       appBar: AppBarWidget(
-        title: 'Việc cần làm',
+        title: 'calendar_task_screen.dart',
         showBackButton: false,
       ),
       body: Column(
@@ -94,6 +102,7 @@ class _CalendarTaskScreenState extends State<CalendarTaskScreen> {
       bottomNavigationBar: BottomNavBarWidget(
         currentItem: _currentNavItem,
         onItemSelected: _handleNavItemSelected,
+        items: _navItems, // Truyền danh sách item vào đây
       ),
     );
   }
