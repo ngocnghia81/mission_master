@@ -49,18 +49,20 @@ class Task {
     };
   }
 
+  // cập nhật thêm khi null
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
-      id: map['id'],
-      title: map['title'],
+      id: map['id'] as int?,
+      title: map['title'] ?? '',
       description: map['description'],
-      status: map['status'],
-      priority: map['priority'],
+      status: map['status'] ?? 'not_assigned',
+      priority: map['priority'] ?? 'low',
       dueDate: map['due_date'] != null ? DateTime.parse(map['due_date']) : null,
-      projectId: map['project_id'],
-      assignedTo: map['assigned_to'],
-      createdBy: map['created_by'],
-      membershipId: map['membership_id'],
+      projectId: map['project_id'] ?? -1,
+      assignedTo: map['assigned_to'] as int?,
+      createdBy: map['created_by'] ?? -1,
+      membershipId:
+          map['membership_id'] != null ? map['membership_id'] as int : null,
       createdAt: DateTime.parse(map['created_at']),
       updatedAt: DateTime.parse(map['updated_at']),
     );
@@ -69,7 +71,7 @@ class Task {
   // Helper methods for JSON serialization
   factory Task.fromJson(Map<String, dynamic> json) => Task.fromMap(json);
   Map<String, dynamic> toJson() => toMap();
-  
+
   Task copyWith({
     int? id,
     String? title,
