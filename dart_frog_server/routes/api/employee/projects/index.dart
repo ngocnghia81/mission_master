@@ -3,22 +3,17 @@ import 'package:dart_frog/dart_frog.dart';
 import '../../../../lib/services/database_service.dart';
 import '../../../../lib/utils/json_utils.dart';
 
-/// Handler cho API quản lý nhiệm vụ của Employee
+/// API trả về danh sách các dự án của 1 nhân viên
 ///
-/// GET /api/employee/tasks - Lấy danh sách nhiệm vụ được giao cho employee
-/// PUT /api/employee/tasks/:id/status - Cập nhật trạng thái nhiệm vụ
+/// GET /api/employee/projects
 Future<Response> onRequest(RequestContext context) async {
-  // Lấy DatabaseService từ provider
   final db = context.read<DatabaseService>();
-
-  // Kiểm tra quyền employee (trong thực tế sẽ lấy từ JWT token)
-  // final user = context.read<User>();
 
   switch (context.request.method) {
     case HttpMethod.get:
       try {
         // Lấy emplyee_id từ query parameters
-        // Ví dụ: /api/employee/tasks?employee_id=4
+        // Ví dụ: /api/employee/projects?employee_id=4
         final employeeIdStr =
             context.request.uri.queryParameters['employee_id'];
         if (employeeIdStr == null) {
@@ -37,18 +32,19 @@ Future<Response> onRequest(RequestContext context) async {
           );
         }
 
-        // Lấy danh sách nhiệm vụ được giao cho employee thông qua project_memberships
-        final tasks = await db.query(
+        // Lấy tất cả project của 1 nhân viên
+        final memberProjects = await db.query(
           '''
-          SELECT * 
-          FROM tasks 
-          WHERE assigned_to = @employeeId
+          SELECT p.*
+          FROM project_memberships pm
+          JOIN projects p ON pm.project_id = p.id
+          WHERE pm.user_id = @employeeId
           ''',
           {'employeeId': employeeId},
         );
-        // Chuyển đổi DateTime thành chuỗi trước khi trả về JSON
-        final jsonTasks = JsonUtils.convertListToJson(tasks);
-        return Response.json(body: jsonTasks);
+
+        final jsonData = JsonUtils.convertListToJson(memberProjects);
+        return Response.json(body: jsonData);
       } catch (e) {
         return Response.json(
           body: {'error': e.toString()},
