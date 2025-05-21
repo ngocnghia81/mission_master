@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/login',
+      initialRoute: '/admin',
       routes: {
         '/': (context) => LoginScreen(),
         '/login': (context) => LoginScreen(),
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => CalendarTaskScreen(),
         '/tasks': (context) => const TaskListScreen(),
         '/projects': (context) => const ProjectListScreen(),
-        '/admin/dashboard': (context) => const AdminHomeScreen(),
+        '/admin': (context) => const AdminHomeScreen(),
         '/admin/profile': (context) => const ProfileScreen(),
       },
       // Handle route generation based on user role

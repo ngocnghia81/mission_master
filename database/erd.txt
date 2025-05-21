@@ -135,8 +135,7 @@ users ||--o{ projects : "lãnh đạo (leader_id)"
 users ||--o{ memberships
 memberships }o--|| projects
 
-' Dự án có nhiều task (1-n)
-projects ||--o{ tasks : "có"
+' Tasks are linked to projects through project_memberships, not directly
 
 ' Mối quan hệ giữa user và task được quản lý thông qua project_memberships
 
