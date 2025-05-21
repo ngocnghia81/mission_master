@@ -12,6 +12,7 @@ Attachment _$AttachmentFromJson(Map<String, dynamic> json) => Attachment(
       filePath: json['filePath'] as String,
       fileType: json['fileType'] as String,
       projectId: (json['projectId'] as num).toInt(),
+      taskId: (json['taskId'] as num?)?.toInt(),
       createdAt: json['createdAt'] as String,
     );
 
@@ -22,5 +23,6 @@ Map<String, dynamic> _$AttachmentToJson(Attachment instance) =>
       'filePath': instance.filePath,
       'fileType': instance.fileType,
       'projectId': instance.projectId,
+      'taskId': instance.taskId,
       'createdAt': instance.createdAt,
     };

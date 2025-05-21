@@ -13,6 +13,7 @@ Comment _$CommentFromJson(Map<String, dynamic> json) => Comment(
       userId: (json['userId'] as num).toInt(),
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
+      deletedAt: json['deletedAt'] as String?,
     );
 
 Map<String, dynamic> _$CommentToJson(Comment instance) => <String, dynamic>{
@@ -22,4 +23,5 @@ Map<String, dynamic> _$CommentToJson(Comment instance) => <String, dynamic>{
       'userId': instance.userId,
       'createdAt': instance.createdAt,
       'updatedAt': instance.updatedAt,
+      'deletedAt': instance.deletedAt,
     };

@@ -15,6 +15,7 @@ class User {
   final bool isActive;
   final String createdAt;
   final String updatedAt;
+  final String? deletedAt;
 
   User({
     this.id,
@@ -27,6 +28,7 @@ class User {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
   });
 
   // Từ JSON thành User
@@ -34,16 +36,19 @@ class User {
     try {
       // Debug print to check the structure of the json
       print('Creating User from json: $json');
-      
+
       // Handle potential null values safely
       return User(
-        id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? ''),
+        id:
+            json['id'] is int
+                ? json['id']
+                : int.tryParse(json['id']?.toString() ?? ''),
         email: json['email'] as String,
         username: json['username'] as String,
         fullName: json['full_name'] as String,
         role: json['role'] as String,
-        avatar: json['avatar'] as String?,  // Already nullable
-        phone: json['phone'] as String?,    // Already nullable
+        avatar: json['avatar'] as String?, // Already nullable
+        phone: json['phone'] as String?, // Already nullable
         isActive: json['is_active'] as bool,
         createdAt: json['created_at'] as String,
         updatedAt: json['updated_at'] as String,
@@ -60,27 +65,19 @@ class User {
 
   // Từ Map trong database thành User
   factory User.fromMap(Map<String, dynamic> map) {
-    try {
-      // Debug print to check the structure of the map
-      print('Creating User from map: $map');
-      
-      return User(
-        id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
-        email: map['email'] as String,
-        username: map['username'] as String,
-        fullName: map['full_name'] as String,
-        role: map['role'] as String,
-        avatar: map['avatar'] as String?,
-        phone: map['phone'] as String?,
-        isActive: map['is_active'] as bool,
-        createdAt: map['created_at'] as String,
-        updatedAt: map['updated_at'] as String,
-      );
-    } catch (e) {
-      print('Error creating User from map: $e');
-      print('Map data: $map');
-      rethrow;
-    }
+    return User(
+      id: map['id'] as int?,
+      email: map['email'] as String,
+      username: map['username'] as String,
+      fullName: map['full_name'] as String,
+      role: map['role'] as String,
+      avatar: map['avatar'] as String?,
+      phone: map['phone'] as String?,
+      isActive: map['is_active'] as bool,
+      createdAt: map['created_at'] as String,
+      updatedAt: map['updated_at'] as String,
+      deletedAt: map['deleted_at'] as String?,
+    );
   }
 
   // Từ User thành Map cho database
@@ -96,6 +93,7 @@ class User {
       'is_active': isActive,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 
@@ -126,6 +124,7 @@ class User {
     bool? isActive,
     String? createdAt,
     String? updatedAt,
+    String? deletedAt,
   }) {
     return User(
       id: id ?? this.id,
@@ -138,6 +137,7 @@ class User {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }

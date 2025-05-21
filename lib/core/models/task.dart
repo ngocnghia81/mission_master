@@ -9,13 +9,14 @@ class Task {
   final String? description;
   final String status;
   final String priority;
-  final DateTime? dueDate;
-  final int projectId;
+  final int dueDays;
+  final DateTime? completedDate;
   final int? assignedTo;
   final int createdBy;
-  final int? membershipId;
+  final int membershipId;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
 
   Task({
     this.id,
@@ -23,13 +24,14 @@ class Task {
     this.description,
     required this.status,
     required this.priority,
-    this.dueDate,
-    required this.projectId,
+    required this.dueDays,
+    this.completedDate,
     this.assignedTo,
     required this.createdBy,
-    this.membershipId,
+    required this.membershipId,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -39,13 +41,14 @@ class Task {
       'description': description,
       'status': status,
       'priority': priority,
-      'due_date': dueDate?.toIso8601String(),
-      'project_id': projectId,
+      'due_days': dueDays,
+      if (completedDate != null) 'completed_date': completedDate!.toIso8601String(),
       'assigned_to': assignedTo,
       'created_by': createdBy,
-      if (membershipId != null) 'membership_id': membershipId,
+      'membership_id': membershipId,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      if (deletedAt != null) 'deleted_at': deletedAt!.toIso8601String(),
     };
   }
 
@@ -56,13 +59,14 @@ class Task {
       description: map['description'],
       status: map['status'],
       priority: map['priority'],
-      dueDate: map['due_date'] != null ? DateTime.parse(map['due_date']) : null,
-      projectId: map['project_id'],
+      dueDays: map['due_days'] as int,
+      completedDate: map['completed_date'] != null ? DateTime.parse(map['completed_date']) : null,
       assignedTo: map['assigned_to'],
       createdBy: map['created_by'],
       membershipId: map['membership_id'],
       createdAt: DateTime.parse(map['created_at']),
       updatedAt: DateTime.parse(map['updated_at']),
+      deletedAt: map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null,
     );
   }
 
@@ -76,13 +80,14 @@ class Task {
     String? description,
     String? status,
     String? priority,
-    DateTime? dueDate,
-    int? projectId,
+    int? dueDays,
+    DateTime? completedDate,
     int? assignedTo,
     int? createdBy,
     int? membershipId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? deletedAt,
   }) {
     return Task(
       id: id ?? this.id,
@@ -90,13 +95,14 @@ class Task {
       description: description ?? this.description,
       status: status ?? this.status,
       priority: priority ?? this.priority,
-      dueDate: dueDate ?? this.dueDate,
-      projectId: projectId ?? this.projectId,
+      dueDays: dueDays ?? this.dueDays,
+      completedDate: completedDate ?? this.completedDate,
       assignedTo: assignedTo ?? this.assignedTo,
       createdBy: createdBy ?? this.createdBy,
       membershipId: membershipId ?? this.membershipId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }

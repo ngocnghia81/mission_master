@@ -16,7 +16,8 @@ CREATE TABLE users (
     avatar TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 -- Bảng projects
@@ -40,6 +41,7 @@ CREATE TABLE project_memberships (
     user_id INTEGER NOT NULL REFERENCES users(id),
     project_id INTEGER NOT NULL REFERENCES projects(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
     UNIQUE(user_id, project_id)
 );
 
@@ -51,13 +53,13 @@ CREATE TABLE tasks (
     status TEXT NOT NULL CHECK (status IN ('not_assigned', 'in_progress', 'completed', 'overdue')),
     priority TEXT NOT NULL CHECK (priority IN ('high', 'medium', 'low')),
     start_date TIMESTAMP NOT NULL,
-    due_date TIMESTAMP NOT NULL,
+    due_days INTEGER NOT NULL,
     completed_date TIMESTAMP,
-    project_id INTEGER NOT NULL REFERENCES projects(id),
-    membership_id INTEGER REFERENCES project_memberships(id),
+    membership_id INTEGER NOT NULL REFERENCES project_memberships(id),
     is_penalty_applied BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 -- Bảng comments
@@ -67,7 +69,8 @@ CREATE TABLE comments (
     task_id INTEGER NOT NULL REFERENCES tasks(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 -- Bảng attachments
@@ -94,7 +97,7 @@ CREATE TABLE evaluations (
 -- Bảng penalties
 CREATE TABLE penalties (
     id SERIAL PRIMARY KEY,
-    task_id INTEGER NOT NULL REFERENCES tasks(id),
+    task_id INTEGER NOT NULL REFERENCES tasks(id) UNIQUE,
     amount REAL NOT NULL,
     reason TEXT NOT NULL,
     days_overdue INTEGER NOT NULL,
@@ -114,12 +117,23 @@ CREATE TABLE notifications (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Bảng task_details
+CREATE TABLE task_details (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL CHECK (status IN ('in_progress', 'completed', 'in_check')),
+    task_id INTEGER NOT NULL REFERENCES tasks(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
 -- Tạo các index để tối ưu truy vấn
 CREATE INDEX idx_projects_manager_id ON projects(manager_id);
 CREATE INDEX idx_projects_leader_id ON projects(leader_id);
 CREATE INDEX idx_project_memberships_user_id ON project_memberships(user_id);
 CREATE INDEX idx_project_memberships_project_id ON project_memberships(project_id);
-CREATE INDEX idx_tasks_project_id ON tasks(project_id);
+
 CREATE INDEX idx_comments_task_id ON comments(task_id);
 CREATE INDEX idx_comments_user_id ON comments(user_id);
 CREATE INDEX idx_attachments_project_id ON attachments(project_id);
@@ -127,6 +141,7 @@ CREATE INDEX idx_attachments_task_id ON attachments(task_id);
 CREATE INDEX idx_evaluations_task_id ON evaluations(task_id);
 CREATE INDEX idx_penalties_task_id ON penalties(task_id);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_task_details_task_id ON task_details(task_id);
 
 -- Tạo các trigger để tự động cập nhật updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()

@@ -12,6 +12,7 @@ ProjectMembership _$ProjectMembershipFromJson(Map<String, dynamic> json) =>
       userId: (json['userId'] as num).toInt(),
       projectId: (json['projectId'] as num).toInt(),
       createdAt: json['createdAt'] as String,
+      deletedAt: json['deletedAt'] as String?,
     );
 
 Map<String, dynamic> _$ProjectMembershipToJson(ProjectMembership instance) =>
@@ -20,4 +21,5 @@ Map<String, dynamic> _$ProjectMembershipToJson(ProjectMembership instance) =>
       'userId': instance.userId,
       'projectId': instance.projectId,
       'createdAt': instance.createdAt,
+      'deletedAt': instance.deletedAt,
     };
