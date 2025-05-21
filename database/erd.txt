@@ -75,7 +75,7 @@ entity "attachments" as attachments {
   *file_path : TEXT
   *file_type : TEXT
   *project_id : INTEGER <<FK>>
-  task_id : INTEGER <<FK>>
+  task_detail_id : INTEGER <<FK>>
   *created_at : TIMESTAMP
 }
 
@@ -152,8 +152,8 @@ users ||--o{ comments : "tạo"
 ' Dự án có thể có nhiều tệp đính kèm (1-n)
 projects ||--o{ attachments : "có"
 
-' Task có thể có nhiều tệp đính kèm (1-n)
-tasks ||--o{ attachments : "có"
+' Task detail có thể có nhiều tệp đính kèm (1-n)
+task_details ||--o{ attachments : "có"
 
 ' Task có thể có một đánh giá (1-1)
 tasks ||--o| evaluations : "được đánh giá"

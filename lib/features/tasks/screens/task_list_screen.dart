@@ -216,15 +216,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                         ),
                                       ),
                                       Text(
-                                        task.dueDate != null
+                                        // Tính ngày đến hạn từ dueDays và ngày bắt đầu
+                                        task.createdAt.add(Duration(days: task.dueDays)).toString() != null
                                             ? DateFormat('dd/MM/yyyy')
-                                                .format(task.dueDate!)
+                                                .format(task.createdAt.add(Duration(days: task.dueDays)))
                                             : 'Không có',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w500,
-                                          color: task.dueDate != null &&
-                                                  task.dueDate!
-                                                      .isBefore(DateTime.now())
+                                          color: task.createdAt.add(Duration(days: task.dueDays)).isBefore(DateTime.now())
                                               ? Colors.red
                                               : null,
                                         ),
@@ -269,7 +268,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                         ),
                                       ),
                                       Text(
-                                        'ID: ${task.projectId}',
+                                        'ID: ${task.membershipId}', // Sử dụng membershipId thay vì projectId
                                         style: TextStyle(
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -308,10 +307,10 @@ class _TaskListScreenState extends State<TaskListScreen> {
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
-  bool _isPastDue(String dueDate) {
-    final date = DateTime.parse(dueDate);
+  bool _isPastDue(DateTime startDate, int dueDays) {
+    final dueDate = startDate.add(Duration(days: dueDays));
     final now = DateTime.now();
-    return date.isBefore(now);
+    return dueDate.isBefore(now);
   }
 
   String _getStatusDisplayName(String status) {

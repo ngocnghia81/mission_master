@@ -9,7 +9,7 @@ class Attachment {
   final String filePath;
   final String fileType;
   final int projectId;
-  final int? taskId;
+  final int? taskDetailId;
   final String createdAt;
 
   Attachment({
@@ -18,7 +18,7 @@ class Attachment {
     required this.filePath,
     required this.fileType,
     required this.projectId,
-    this.taskId,
+    this.taskDetailId,
     required this.createdAt,
   });
 
@@ -36,7 +36,7 @@ class Attachment {
       filePath: map['file_path'] as String,
       fileType: map['file_type'] as String,
       projectId: map['project_id'] as int,
-      taskId: map['task_id'] as int?,
+      taskDetailId: map['task_detail_id'] as int?,
       createdAt: map['created_at'] as String,
     );
   }
@@ -49,7 +49,7 @@ class Attachment {
       'file_path': filePath,
       'file_type': fileType,
       'project_id': projectId,
-      if (taskId != null) 'task_id': taskId,
+      'task_detail_id': taskDetailId,
       'created_at': createdAt,
     };
   }
@@ -61,7 +61,7 @@ class Attachment {
     String? filePath,
     String? fileType,
     int? projectId,
-    int? taskId,
+    int? taskDetailId,
     String? createdAt,
   }) {
     return Attachment(
@@ -70,7 +70,7 @@ class Attachment {
       filePath: filePath ?? this.filePath,
       fileType: fileType ?? this.fileType,
       projectId: projectId ?? this.projectId,
-      taskId: taskId ?? this.taskId,
+      taskDetailId: taskDetailId ?? this.taskDetailId,
       createdAt: createdAt ?? this.createdAt,
     );
   }

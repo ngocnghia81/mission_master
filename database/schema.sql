@@ -80,7 +80,7 @@ CREATE TABLE attachments (
     file_path TEXT NOT NULL,
     file_type TEXT NOT NULL,
     project_id INTEGER NOT NULL REFERENCES projects(id),
-    task_id INTEGER REFERENCES tasks(id),
+    task_detail_id INTEGER REFERENCES task_details(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
