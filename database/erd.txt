@@ -13,6 +13,7 @@ entity "users" as users {
   *is_active : BOOLEAN
   *created_at : TIMESTAMP
   *updated_at : TIMESTAMP
+  deleted_at : TIMESTAMP
 }
 
 entity "projects" as projects {
@@ -36,6 +37,7 @@ entity "project_memberships" as memberships {
   *user_id : INTEGER <<FK>>
   *project_id : INTEGER <<FK>>
   *created_at : TIMESTAMP
+  deleted_at : TIMESTAMP
 }
 
 entity "tasks" as tasks {
@@ -46,13 +48,13 @@ entity "tasks" as tasks {
   *status : TEXT
   *priority : TEXT
   *start_date : TIMESTAMP
-  *due_date : TIMESTAMP
+  *due_days : INTEGER
   completed_date : TIMESTAMP
-  *project_id : INTEGER <<FK>>
-  membership_id : INTEGER <<FK>>
+  *membership_id : INTEGER <<FK>>
   is_penalty_applied : BOOLEAN
   *created_at : TIMESTAMP
   *updated_at : TIMESTAMP
+  deleted_at : TIMESTAMP
 }
 
 entity "comments" as comments {
@@ -63,6 +65,7 @@ entity "comments" as comments {
   *user_id : INTEGER <<FK>>
   *created_at : TIMESTAMP
   *updated_at : TIMESTAMP
+  deleted_at : TIMESTAMP
 }
 
 entity "attachments" as attachments {
@@ -89,7 +92,7 @@ entity "evaluations" as evaluations {
 entity "penalties" as penalties {
   *id : SERIAL <<PK>>
   --
-  *task_id : INTEGER <<FK>>
+  *task_id : INTEGER <<FK>> <<UNIQUE>>
   *amount : REAL
   *reason : TEXT
   *days_overdue : INTEGER
@@ -107,6 +110,17 @@ entity "notifications" as notifications {
   related_id : INTEGER
   *is_read : BOOLEAN
   *created_at : TIMESTAMP
+}
+
+entity "task_details" as task_details {
+  *id : SERIAL <<PK>>
+  --
+  *title : TEXT
+  description : TEXT
+  *status : TEXT
+  *task_id : INTEGER <<FK>>
+  *created_at : TIMESTAMP
+  deleted_at : TIMESTAMP
 }
 
 ' Định nghĩa các mối quan hệ
@@ -144,8 +158,11 @@ tasks ||--o{ attachments : "có"
 ' Task có thể có một đánh giá (1-1)
 tasks ||--o| evaluations : "được đánh giá"
 
-' Task có thể có một hình phạt (1-1)
+' Task có thể có một khoản phạt duy nhất (1-0..1)
 tasks ||--o| penalties : "bị phạt"
+
+' Task có thể có nhiều task_details (1-n)
+tasks ||--o{ task_details : "có"
 
 ' User có thể nhận nhiều thông báo (1-n)
 users ||--o{ notifications : "nhận"

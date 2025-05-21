@@ -2,6 +2,9 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'penalty.g.dart';
 
+/// Mô hình khoản phạt cho task trễ hạn.
+/// Mỗi task có thể có 0 hoặc 1 khoản phạt duy nhất (task_id là UNIQUE trong database).
+/// Mối quan hệ giữa task và penalty là 1-0..1 (một task có thể có nhiều nhất một khoản phạt).
 @JsonSerializable()
 class Penalty {
   final int? id;

@@ -82,18 +82,27 @@ INSERT INTO tasks (
     status,
     priority,
     start_date,
-    due_date,
-    project_id,
-    assigned_to,
-    assigned_by
+    due_days,
+    membership_id
 ) VALUES (
     'Nhiệm vụ mẫu',
     'Đây là nhiệm vụ mẫu để kiểm tra hệ thống',
     'in_progress',
     'medium',
     CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP + INTERVAL '7 days',
-    1, -- Dự án mẫu
-    3, -- employee
-    2  -- manager
+    7,
+    1  -- ID của project_membership
+);
+
+-- Tạo task_detail mẫu
+INSERT INTO task_details (
+    title,
+    description,
+    status,
+    task_id
+) VALUES (
+    'Chi tiết nhiệm vụ mẫu',
+    'Đây là chi tiết nhiệm vụ mẫu để kiểm tra hệ thống',
+    'in_progress',
+    1  -- ID của task
 );

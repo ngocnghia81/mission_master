@@ -8,12 +8,14 @@ class ProjectMembership {
   final int userId;
   final int projectId;
   final String createdAt;
+  final String? deletedAt;
 
   ProjectMembership({
     this.id,
     required this.userId,
     required this.projectId,
     required this.createdAt,
+    this.deletedAt,
   });
 
   // Từ JSON thành ProjectMembership
@@ -30,6 +32,7 @@ class ProjectMembership {
       userId: map['user_id'] as int,
       projectId: map['project_id'] as int,
       createdAt: map['created_at'] as String,
+      deletedAt: map['deleted_at'] as String?,
     );
   }
 
@@ -40,6 +43,7 @@ class ProjectMembership {
       'user_id': userId,
       'project_id': projectId,
       'created_at': createdAt,
+      'deleted_at': deletedAt,
     };
   }
 
@@ -49,12 +53,14 @@ class ProjectMembership {
     int? userId,
     int? projectId,
     String? createdAt,
+    String? deletedAt,
   }) {
     return ProjectMembership(
       id: id ?? this.id,
       userId: userId ?? this.userId,
       projectId: projectId ?? this.projectId,
       createdAt: createdAt ?? this.createdAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }
