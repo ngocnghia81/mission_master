@@ -10,7 +10,8 @@ CREATE TABLE users (
     avatar TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 -- Bảng projects
@@ -34,6 +35,7 @@ CREATE TABLE project_memberships (
     user_id INTEGER NOT NULL REFERENCES users(id),
     project_id INTEGER NOT NULL REFERENCES projects(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
     UNIQUE(user_id, project_id)
 );
 
@@ -45,15 +47,13 @@ CREATE TABLE tasks (
     status TEXT NOT NULL CHECK (status IN ('not_assigned', 'in_progress', 'completed', 'overdue')),
     priority TEXT NOT NULL CHECK (priority IN ('high', 'medium', 'low')),
     start_date TIMESTAMP NOT NULL,
-    due_date TIMESTAMP NOT NULL,
+    due_days INTEGER NOT NULL,
     completed_date TIMESTAMP,
-    project_id INTEGER NOT NULL REFERENCES projects(id),
-    assigned_to INTEGER REFERENCES users(id),
-    assigned_by INTEGER NOT NULL REFERENCES users(id),
-    membership_id INTEGER REFERENCES project_memberships(id),
+    membership_id INTEGER NOT NULL REFERENCES project_memberships(id),
     is_penalty_applied BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 -- Bảng comments
@@ -63,7 +63,8 @@ CREATE TABLE comments (
     task_id INTEGER NOT NULL REFERENCES tasks(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 -- Bảng attachments
@@ -90,7 +91,7 @@ CREATE TABLE evaluations (
 -- Bảng penalties
 CREATE TABLE penalties (
     id SERIAL PRIMARY KEY,
-    task_id INTEGER NOT NULL REFERENCES tasks(id),
+    task_id INTEGER NOT NULL REFERENCES tasks(id) UNIQUE,
     amount REAL NOT NULL,
     reason TEXT NOT NULL,
     days_overdue INTEGER NOT NULL,
@@ -108,4 +109,15 @@ CREATE TABLE notifications (
     related_id INTEGER,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Bảng task_details
+CREATE TABLE task_details (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL CHECK (status IN ('in_progress', 'completed', 'in_check')),
+    task_id INTEGER NOT NULL REFERENCES tasks(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );

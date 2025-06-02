@@ -10,6 +10,7 @@ class Comment {
   final int userId;
   final String createdAt;
   final String updatedAt;
+  final String? deletedAt;
 
   Comment({
     this.id,
@@ -18,6 +19,7 @@ class Comment {
     required this.userId,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
   });
 
   // Từ JSON thành Comment
@@ -35,6 +37,7 @@ class Comment {
       userId: map['user_id'] as int,
       createdAt: map['created_at'] as String,
       updatedAt: map['updated_at'] as String,
+      deletedAt: map['deleted_at'] as String?,
     );
   }
 
@@ -47,6 +50,7 @@ class Comment {
       'user_id': userId,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 
@@ -58,6 +62,7 @@ class Comment {
     int? userId,
     String? createdAt,
     String? updatedAt,
+    String? deletedAt,
   }) {
     return Comment(
       id: id ?? this.id,
@@ -66,6 +71,7 @@ class Comment {
       userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }

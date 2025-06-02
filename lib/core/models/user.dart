@@ -15,6 +15,7 @@ class User {
   final bool isActive;
   final String createdAt;
   final String updatedAt;
+  final String? deletedAt;
 
   User({
     this.id,
@@ -27,6 +28,7 @@ class User {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
   });
 
   // Từ JSON thành User
@@ -48,6 +50,7 @@ class User {
       isActive: map['is_active'] as bool,
       createdAt: map['created_at'] as String,
       updatedAt: map['updated_at'] as String,
+      deletedAt: map['deleted_at'] as String?,
     );
   }
 
@@ -64,6 +67,7 @@ class User {
       'is_active': isActive,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 
@@ -94,6 +98,7 @@ class User {
     bool? isActive,
     String? createdAt,
     String? updatedAt,
+    String? deletedAt,
   }) {
     return User(
       id: id ?? this.id,
@@ -106,6 +111,7 @@ class User {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }
