@@ -1,15 +1,31 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'package:mission_master/core/models/user.dart';
 
 /// Service để gọi API từ Dart Frog server
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   static ApiService get instance => _instance;
 
-  final String baseUrl = 'http://192.168.1.9:8080/api';
+  // 10.0.2.2 là địa chỉ đặc biệt trong Android Emulator để truy cập localhost của máy chủ
+  final String baseUrl = 'http://10.0.2.2:8081/api';
 
   // Lưu trữ thông tin người dùng hiện tại sau khi đăng nhập
   Map<String, dynamic>? _currentUserData;
+
+  // Giả lập dữ liệu người dùng hiện tại
+  final Map<String, dynamic> _currentUser = {
+    'id': '1',
+    'username': 'admin',
+    'email': 'admin@example.com',
+    'fullName': 'Admin User',
+    'role': 'admin',
+    'isActive': true,
+  };
+
+  // Giả lập danh sách quản lý
+  final List<Map<String, dynamic>> _managers = [];
 
   ApiService._internal();
 
@@ -135,27 +151,62 @@ class ApiService {
 
   /// Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'username': username,
-        'password': password,
-      }),
-    );
+    print('Gọi API login với username: $username');
+    
+    try {
+      // Thêm timeout 10 giây để tránh treo vô hạn
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': username,
+          'password': password,
+        }),
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        print('Login request timeout sau 10 giây');
+        throw Exception('Kết nối tới server bị timeout');
+      });
 
-    // In ra dữ liệu trả về để debug
-    print('Login response: ${response.statusCode} - ${response.body}');
+      // In ra dữ liệu trả về để debug
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      final responseData = json.decode(response.body);
-      // Lưu thông tin người dùng hiện tại
-      _currentUserData = responseData['user'];
-      return responseData;
-    } else {
-      final errorData = json.decode(response.body);
-      throw Exception(
-          errorData['error'] ?? 'Login failed: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('Response data decoded: $responseData');
+        
+        // Kiểm tra cấu trúc response
+        Map<String, dynamic> userData;
+        if (responseData is Map<String, dynamic>) {
+          if (responseData.containsKey('user')) {
+            userData = responseData['user'];
+          } else {
+            // Nếu không có trường user, giả định toàn bộ response là thông tin người dùng
+            userData = responseData;
+          }
+        } else {
+          print('ERROR: Response không phải là Map!');
+          throw Exception('Invalid response format');
+        }
+        
+        // Lưu thông tin người dùng hiện tại
+        _currentUserData = userData;
+        print('Current user data saved: $_currentUserData');
+        
+        // Trả về dữ liệu đăng nhập
+        return {
+          'user': userData,
+          'token': responseData['token'],
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        print('Login error data: $errorData');
+        throw Exception(
+            errorData['error'] ?? 'Login failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Exception during login: $e');
+      rethrow;
     }
   }
 
@@ -181,34 +232,70 @@ class ApiService {
 
   /// Lấy thông tin người dùng hiện tại
   Future<Map<String, dynamic>> getCurrentUser() async {
-    // Nếu đã có thông tin người dùng trong bộ nhớ, trả về ngay
-    if (_currentUserData != null) {
-      return _currentUserData!;
-    }
-
-    // Trong trường hợp thực tế, bạn có thể gọi API để lấy thông tin người dùng hiện tại
-    // dựa trên token đã lưu
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/me'),
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': 'Bearer $token', // Thêm token xác thực nếu cần
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final userData = json.decode(response.body);
-        _currentUserData = userData;
-        return userData;
-      } else {
-        throw Exception('Failed to get current user: ${response.statusCode}');
-      }
-    } catch (e) {
-      // Nếu API chưa được triển khai, trả về dữ liệu mẫu
+      // Nếu đã có dữ liệu người dùng từ đăng nhập, sử dụng nó
       if (_currentUserData != null) {
-        return _currentUserData!;
+        final userData = Map<String, dynamic>.from(_currentUserData!);
+        
+        // Đảm bảo id được trả về dưới dạng int
+        if (userData['id'] != null && userData['id'] is String) {
+          userData['id'] = int.tryParse(userData['id'].toString()) ?? 1;
+        }
+        
+        // Thêm các trường ngày tháng nếu chưa có
+        if (!userData.containsKey('created_at') && !userData.containsKey('createdAt')) {
+          userData['created_at'] = DateTime.now().subtract(const Duration(days: 30)).toIso8601String();
+        }
+        
+        if (!userData.containsKey('updated_at') && !userData.containsKey('updatedAt')) {
+          userData['updated_at'] = DateTime.now().toIso8601String();
+        }
+        
+        print('getCurrentUser returning from _currentUserData: $userData');
+        return userData;
       }
+      
+      // Nếu chưa đăng nhập, thử lấy thông tin người dùng từ API
+      try {
+        final response = await http.get(
+          Uri.parse('$baseUrl/auth/me'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 5));
+        
+        if (response.statusCode == 200) {
+          final responseData = json.decode(response.body);
+          if (responseData is Map<String, dynamic>) {
+            _currentUserData = responseData;
+            print('getCurrentUser fetched from API: $_currentUserData');
+            return getCurrentUser(); // Gọi lại để xử lý dữ liệu
+          }
+        }
+      } catch (e) {
+        print('Error fetching current user from API: $e');
+        // Tiếp tục sử dụng dữ liệu mẫu nếu API không hoạt động
+      }
+      
+      // Nếu không có dữ liệu từ API, sử dụng dữ liệu mẫu
+      final userData = Map<String, dynamic>.from(_currentUser);
+      
+      // Đảm bảo id được trả về dưới dạng int
+      if (userData['id'] != null && userData['id'] is String) {
+        userData['id'] = int.tryParse(userData['id'].toString()) ?? 1;
+      }
+      
+      // Thêm các trường ngày tháng nếu chưa có
+      if (!userData.containsKey('created_at') && !userData.containsKey('createdAt')) {
+        userData['created_at'] = DateTime.now().subtract(const Duration(days: 30)).toIso8601String();
+      }
+      
+      if (!userData.containsKey('updated_at') && !userData.containsKey('updatedAt')) {
+        userData['updated_at'] = DateTime.now().toIso8601String();
+      }
+      
+      print('getCurrentUser returning from _currentUser: $userData');
+      return userData;
+    } catch (e) {
+      print('Error getting current user: $e');
       throw Exception('Failed to get current user: $e');
     }
   }
@@ -355,44 +442,17 @@ class ApiService {
         Uri.parse('$baseUrl/admin/users/$userId'),
       );
 
-      print(
-          'Get user by ID response: ${response.statusCode} - ${response.body}');
+      print('Get user by ID response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final userData = json.decode(response.body);
+        return userData;
       } else {
-        // Nếu API chưa được triển khai, trả về dữ liệu mẫu
-        return {
-          'id': userId,
-          'username': 'user$userId',
-          'email': 'user$userId@example.com',
-          'full_name': 'Người dùng $userId',
-          'role': userId % 3 == 0
-              ? 'admin'
-              : (userId % 3 == 1 ? 'manager' : 'employee'),
-          'is_active': userId % 2 == 0,
-          'created_at': DateTime.now()
-              .subtract(const Duration(days: 30))
-              .toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-        };
+        throw Exception('Failed to load user: ${response.statusCode}');
       }
     } catch (e) {
       print('Exception in getUserById: $e');
-      // Nếu API chưa được triển khai, trả về dữ liệu mẫu
-      return {
-        'id': userId,
-        'username': 'user$userId',
-        'email': 'user$userId@example.com',
-        'full_name': 'Người dùng $userId',
-        'role': userId % 3 == 0
-            ? 'admin'
-            : (userId % 3 == 1 ? 'manager' : 'employee'),
-        'is_active': userId % 2 == 0,
-        'created_at':
-            DateTime.now().subtract(const Duration(days: 30)).toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
+      throw Exception('Failed to load user: $e');
     }
   }
 
@@ -426,47 +486,11 @@ class ApiService {
         }
         return [];
       } else {
-        // Nếu API chưa được triển khai, trả về dữ liệu mẫu
-        final tasks = <Map<String, dynamic>>[];
-        final random = DateTime.now().millisecondsSinceEpoch % 10 + 1;
-        final count = (page == 1) ? random : (random ~/ 2);
-
-        for (var i = 0; i < count; i++) {
-          final taskId = (page - 1) * limit + i + 1;
-          tasks.add({
-            'id': taskId,
-            'title': 'Nhiệm vụ $taskId',
-            'description':
-                'Mô tả chi tiết cho nhiệm vụ $taskId của người dùng $userId',
-            'status': [
-              'not_assigned',
-              'in_progress',
-              'completed',
-              'overdue'
-            ][(taskId + userId) % 4],
-            'priority': ['high', 'medium', 'low'][(taskId + userId) % 3],
-            'start_date': DateTime.now()
-                .subtract(Duration(days: 10 + (taskId % 5)))
-                .toIso8601String(),
-            'due_date': DateTime.now()
-                .add(Duration(days: 5 + (taskId % 10)))
-                .toIso8601String(),
-            'project_id': 1 + (taskId % 3),
-            'created_at': DateTime.now()
-                .subtract(Duration(days: 10 + (taskId % 5)))
-                .toIso8601String(),
-            'updated_at': DateTime.now()
-                .subtract(Duration(days: (taskId % 5)))
-                .toIso8601String(),
-          });
-        }
-
-        return tasks;
+        throw Exception('Failed to load tasks: ${response.statusCode}');
       }
     } catch (e) {
       print('Exception in getUserTasks: $e');
-      // Nếu có lỗi, trả về danh sách rỗng
-      return [];
+      throw Exception('Failed to load tasks: $e');
     }
   }
 
@@ -491,25 +515,57 @@ class ApiService {
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       } else {
-        // Nếu API chưa được triển khai, trả về dữ liệu mẫu
-        if (status == 'completed') {
-          return {'count': (userId % 5) + 3};
-        } else if (status == 'overdue') {
-          return {'count': (userId % 3) + 1};
-        } else {
-          return {'count': (userId % 10) + 5};
-        }
+        throw Exception('Failed to load task statistics: ${response.statusCode}');
       }
     } catch (e) {
       print('Exception in getUserTaskStatistics: $e');
-      // Nếu có lỗi, trả về dữ liệu mẫu
-      if (status == 'completed') {
-        return {'count': (userId % 5) + 3};
-      } else if (status == 'overdue') {
-        return {'count': (userId % 3) + 1};
-      } else {
-        return {'count': (userId % 10) + 5};
+      throw Exception('Failed to load task statistics: $e');
+    }
+  }
+
+  // Tạo tài khoản quản lý mới
+  Future<bool> createManagerAccount({
+    required String fullName,
+    required String email,
+    required String username,
+    required String phone,
+    required String password,
+  }) async {
+    try {
+      // Giả lập độ trễ của API
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // Kiểm tra email và username đã tồn tại chưa
+      final existingManager = _managers.firstWhere(
+        (manager) => manager['email'] == email || manager['username'] == username,
+        orElse: () => <String, dynamic>{},
+      );
+      
+      if (existingManager.isNotEmpty) {
+        return false; // Email hoặc username đã tồn tại
       }
+      
+      // Tạo manager mới
+      final newManager = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'fullName': fullName,
+        'email': email,
+        'username': username,
+        'phone': phone,
+        'password': password, // Trong thực tế cần mã hóa mật khẩu
+        'role': 'manager',
+        'isActive': true,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      
+      // Thêm vào danh sách quản lý
+      _managers.add(newManager);
+      
+      print('Created manager account: ${newManager['username']}');
+      return true;
+    } catch (e) {
+      print('Error creating manager account: $e');
+      return false;
     }
   }
 }

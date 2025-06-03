@@ -36,22 +36,47 @@ class User {
     try {
       // Debug print to check the structure of the json
       print('Creating User from json: $json');
+      print('JSON keys: ${json.keys.toList()}');
+      print('JSON types: ${json.map((k, v) => MapEntry(k, v?.runtimeType))}');
+
+      // Xử lý chuyển đổi id từ String sang int nếu cần
+      int? userId;
+      if (json['id'] != null) {
+        if (json['id'] is int) {
+          userId = json['id'];
+        } else if (json['id'] is String) {
+          userId = int.tryParse(json['id'].toString());
+        }
+      }
+
+      // Xử lý các trường có thể null
+      final String email = json['email'] as String? ?? '';
+      final String username = json['username'] as String? ?? '';
+      final String fullName = json['full_name'] as String? ?? json['fullName'] as String? ?? '';
+      final String role = json['role'] as String? ?? '';
+      final bool isActive = json['is_active'] as bool? ?? json['isActive'] as bool? ?? true;
+      
+      // Xử lý các trường ngày tháng
+      final String createdAt = json['created_at'] as String? ?? 
+                              json['createdAt'] as String? ?? 
+                              DateTime.now().toIso8601String();
+      final String updatedAt = json['updated_at'] as String? ?? 
+                              json['updatedAt'] as String? ?? 
+                              DateTime.now().toIso8601String();
 
       // Handle potential null values safely
       return User(
-        id:
-            json['id'] is int
-                ? json['id']
-                : int.tryParse(json['id']?.toString() ?? ''),
-        email: json['email'] as String,
-        username: json['username'] as String,
-        fullName: json['full_name'] as String,
-        role: json['role'] as String,
-        avatar: json['avatar'] as String?, // Already nullable
-        phone: json['phone'] as String?, // Already nullable
-        isActive: json['is_active'] as bool,
-        createdAt: json['created_at'] as String,
-        updatedAt: json['updated_at'] as String,
+        id: userId,
+        email: email,
+        username: username,
+        fullName: fullName,
+        role: role,
+        avatar: json['avatar'] as String?,
+        phone: json['phone'] as String?,
+        isActive: isActive,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        deletedAt: json['deleted_at'] as String? ?? json['deletedAt'] as String?,
       );
     } catch (e) {
       print('Error creating User from json: $e');
@@ -65,19 +90,52 @@ class User {
 
   // Từ Map trong database thành User
   factory User.fromMap(Map<String, dynamic> map) {
-    return User(
-      id: map['id'] as int?,
-      email: map['email'] as String,
-      username: map['username'] as String,
-      fullName: map['full_name'] as String,
-      role: map['role'] as String,
-      avatar: map['avatar'] as String?,
-      phone: map['phone'] as String?,
-      isActive: map['is_active'] as bool,
-      createdAt: map['created_at'] as String,
-      updatedAt: map['updated_at'] as String,
-      deletedAt: map['deleted_at'] as String?,
-    );
+    try {
+      print('Creating User from map: $map');
+      
+      // Xử lý chuyển đổi id từ String sang int nếu cần
+      int? userId;
+      if (map['id'] != null) {
+        if (map['id'] is int) {
+          userId = map['id'];
+        } else if (map['id'] is String) {
+          userId = int.tryParse(map['id']);
+        }
+      }
+      
+      // Xử lý các trường có thể null
+      final String email = map['email'] as String? ?? '';
+      final String username = map['username'] as String? ?? '';
+      final String fullName = map['full_name'] as String? ?? map['fullName'] as String? ?? '';
+      final String role = map['role'] as String? ?? '';
+      final bool isActive = map['is_active'] as bool? ?? map['isActive'] as bool? ?? true;
+      
+      // Xử lý các trường ngày tháng
+      final String createdAt = map['created_at'] as String? ?? 
+                              map['createdAt'] as String? ?? 
+                              DateTime.now().toIso8601String();
+      final String updatedAt = map['updated_at'] as String? ?? 
+                              map['updatedAt'] as String? ?? 
+                              DateTime.now().toIso8601String();
+      
+      return User(
+        id: userId,
+        email: email,
+        username: username,
+        fullName: fullName,
+        role: role,
+        avatar: map['avatar'] as String?,
+        phone: map['phone'] as String?,
+        isActive: isActive,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        deletedAt: map['deleted_at'] as String? ?? map['deletedAt'] as String?,
+      );
+    } catch (e) {
+      print('Error in User.fromMap: $e');
+      print('Map data: $map');
+      rethrow;
+    }
   }
 
   // Từ User thành Map cho database
@@ -98,9 +156,20 @@ class User {
   }
 
   // Kiểm tra vai trò của người dùng
-  bool get isAdmin => role == UserRole.admin.name;
-  bool get isManager => role == UserRole.manager.name;
-  bool get isEmployee => role == UserRole.employee.name;
+  bool get isAdmin {
+    print('Kiểm tra isAdmin: role=$role, UserRole.admin.name=${UserRole.admin.name}, so sánh: ${role == UserRole.admin.name}');
+    return role == UserRole.admin.name;
+  }
+  
+  bool get isManager {
+    print('Kiểm tra isManager: role=$role, UserRole.manager.name=${UserRole.manager.name}, so sánh: ${role == UserRole.manager.name}');
+    return role == UserRole.manager.name;
+  }
+  
+  bool get isEmployee {
+    print('Kiểm tra isEmployee: role=$role, UserRole.employee.name=${UserRole.employee.name}, so sánh: ${role == UserRole.employee.name}');
+    return role == UserRole.employee.name;
+  }
 
   // Kiểm tra xem user có phải là nhóm trưởng của dự án không
   bool isLeaderOfProject(int projectId) {

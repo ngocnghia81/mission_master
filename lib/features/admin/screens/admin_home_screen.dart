@@ -201,7 +201,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       backgroundColor: const Color(0xFFF5F7FA),
       drawer: AdminDrawer(onLogout: _handleLogout),
       appBar: const AdminAppBar(
-        title: 'Administrator',
+        title: 'Quản lý nhân viên',
+        showDrawerButton: true,
+        showBackButton: false,
       ),
       bottomNavigationBar: AdminBottomNavBar(
         currentItem: AdminNavItem.dashboard,
@@ -233,7 +235,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               },
               decoration: InputDecoration(
                 hintText: 'Tìm kiếm nhân viên...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                prefix: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -300,7 +302,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         ],
       ),
       floatingActionButton: RawMaterialButton(
-        onPressed: _showAddUserDialog,
+        onPressed: () {
+          Navigator.pushNamed(context, '/admin/create_manager');
+        },
         shape: const CircleBorder(),
         elevation: 4.0,
         fillColor: Colors.transparent,

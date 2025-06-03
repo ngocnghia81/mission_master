@@ -3,6 +3,7 @@ import 'package:mission_master/core/models/user.dart';
 import 'package:mission_master/core/theme/app_colors.dart';
 import 'package:mission_master/features/admin/widgets/admin_app_bar.dart';
 import 'package:mission_master/features/admin/widgets/admin_bottom_nav_bar.dart';
+import 'package:mission_master/features/admin/widgets/admin_drawer.dart';
 import 'package:mission_master/services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -52,6 +53,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final userData = await ApiService.instance.getCurrentUser();
+      
+      // Xử lý chuyển đổi id từ String sang int nếu cần
+      if (userData['id'] != null && userData['id'] is String) {
+        userData['id'] = int.tryParse(userData['id'].toString());
+      }
+      
       final user = User.fromMap(userData);
 
       setState(() {
@@ -82,6 +89,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
       print('Error fetching user data: $e');
+      
+      // Hiển thị thông báo lỗi
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải thông tin người dùng: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -142,10 +158,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _handleLogout() {
+    // Xử lý đăng xuất
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AdminAppBar(title: 'Chi tiết nhân viên'),
+      drawer: AdminDrawer(onLogout: _handleLogout),
+      appBar: AdminAppBar(
+        title: 'Hồ sơ cá nhân',
+        showDrawerButton: false,
+        showBackButton: true,
+      ),
       bottomNavigationBar: AdminBottomNavBar(
         currentItem: AdminNavItem.users, // Users tab
         onItemSelected: (item) {
@@ -470,11 +496,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
             : Column(
                 children: [
-                  ..._recentTasks.map((task) => _buildTaskCard(task)),
+                  if (_recentTasks.isNotEmpty)
+                    ..._recentTasks.map((task) => _buildTaskCard(task)),
                   if (_isLoadingTasks)
                     const Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Center(child: CircularProgressIndicator()),
+                    ),
+                  if (_hasMoreTasks && !_isLoadingTasks && _recentTasks.isNotEmpty)
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: _loadMoreTasks,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Tải thêm'),
+                      ),
                     ),
                 ],
               ),
@@ -498,9 +533,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final status = task['status'] as String? ?? 'not_assigned';
     final priority = task['priority'] as String? ?? 'medium';
-    final dueDate = task['due_date'] != null
-        ? DateTime.parse(task['due_date'] as String)
-        : DateTime.now().add(const Duration(days: 7));
+    
+    // Xử lý ngày tháng
+    String dueDateText = 'Không có hạn';
+    if (task['due_days'] != null) {
+      try {
+        final int dueDays = int.tryParse(task['due_days'].toString()) ?? 0;
+        DateTime? startDate;
+        
+        if (task['start_date'] != null && task['start_date'].toString().isNotEmpty) {
+          startDate = DateTime.parse(task['start_date'].toString());
+        }
+        
+        if (startDate != null) {
+          final DateTime dueDateObj = startDate.add(Duration(days: dueDays));
+          dueDateText = '${dueDateObj.day}/${dueDateObj.month}/${dueDateObj.year}';
+        } else {
+          dueDateText = '$dueDays ngày';
+        }
+      } catch (e) {
+        print('Error calculating due date: $e');
+        dueDateText = 'Không xác định';
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -605,7 +660,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '${dueDate.day}/${dueDate.month}/${dueDate.year}',
+                  dueDateText,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -654,8 +709,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (fullName.isEmpty) return '';
 
     List<String> nameParts = fullName.split(' ');
-    if (nameParts.length == 1) return nameParts[0][0];
+    if (nameParts.isEmpty) return '';
+    if (nameParts.length == 1) {
+      return nameParts[0].isNotEmpty ? nameParts[0][0] : '';
+    }
 
-    return nameParts.first[0] + nameParts.last[0];
+    return (nameParts.first.isNotEmpty ? nameParts.first[0] : '') + 
+           (nameParts.last.isNotEmpty ? nameParts.last[0] : '');
   }
 }

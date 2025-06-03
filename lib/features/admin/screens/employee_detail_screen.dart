@@ -3,6 +3,7 @@ import 'package:mission_master/core/models/user.dart';
 import 'package:mission_master/core/theme/app_colors.dart';
 import 'package:mission_master/features/admin/widgets/admin_app_bar.dart';
 import 'package:mission_master/features/admin/widgets/admin_bottom_nav_bar.dart';
+import 'package:mission_master/features/admin/widgets/admin_drawer.dart';
 import 'package:mission_master/services/api_service.dart';
 
 class EmployeeDetailScreen extends StatefulWidget {
@@ -61,7 +62,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     });
 
     try {
-      // Lấy thông tin người dùng theo ID
+      // Lấy thông tin người dùng theo ID từ API
       final userData = await ApiService.instance.getUserById(widget.userId);
       final user = User.fromMap(userData);
 
@@ -71,18 +72,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       });
 
       // Lấy số lượng task của người dùng
-      try {
-        final count =
-            await ApiService.instance.getTaskCountByUserId(widget.userId);
-        setState(() {
-          _taskCount = count;
-        });
+      _fetchTaskCount();
 
-        // Lấy thống kê nhiệm vụ
-        _fetchTaskStatistics();
-      } catch (e) {
-        print('Error fetching task count: $e');
-      }
+      // Lấy thống kê nhiệm vụ
+      _fetchTaskStatistics();
 
       // Lấy danh sách task của người dùng
       _fetchUserTasks();
@@ -91,6 +84,65 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         _isLoading = false;
       });
       print('Error fetching user data: $e');
+      
+      // Hiển thị thông báo lỗi
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải thông tin người dùng: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _fetchTaskCount() async {
+    try {
+      // Lấy thống kê tổng hợp
+      final statistics = await ApiService.instance.getUserTaskStatistics(widget.userId);
+      setState(() {
+        _taskCount = statistics['total_count'] ?? 0;
+      });
+    } catch (e) {
+      print('Error fetching task count: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải số lượng nhiệm vụ: ${e.toString()}'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _fetchTaskStatistics() async {
+    try {
+      // Lấy thống kê tổng hợp
+      final statistics = await ApiService.instance.getUserTaskStatistics(widget.userId);
+      
+      setState(() {
+        _completedTaskCount = statistics['completed_count'] ?? 0;
+        _overdueTaskCount = statistics['overdue_count'] ?? 0;
+        _inProgressTaskCount = statistics['in_progress_count'] ?? 0;
+      });
+    } catch (e) {
+      print('Error fetching task statistics: $e');
+
+      // Nếu có lỗi, hiển thị thông báo
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Không thể tải thống kê nhiệm vụ'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // Hiển thị giá trị mặc định
+      setState(() {
+        _completedTaskCount = 0;
+        _overdueTaskCount = 0;
+        _inProgressTaskCount = 0;
+      });
     }
   }
 
@@ -108,11 +160,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         widget.userId,
         page: _currentPage,
         limit: _pageSize,
-      )
-          .catchError((e) {
-        print('Error fetching user tasks: $e');
-        return <Map<String, dynamic>>[];
-      });
+      );
 
       setState(() {
         _tasks = tasks;
@@ -126,6 +174,15 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         _hasMoreTasks = false;
       });
       print('Error fetching user tasks: $e');
+      
+      // Hiển thị thông báo lỗi
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải danh sách nhiệm vụ: ${e.toString()}'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -143,11 +200,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         widget.userId,
         page: nextPage,
         limit: _pageSize,
-      )
-          .catchError((e) {
-        print('Error loading more tasks: $e');
-        return <Map<String, dynamic>>[];
-      });
+      );
 
       setState(() {
         _tasks.addAll(moreTasks);
@@ -161,6 +214,15 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         _hasMoreTasks = false; // Ngừng tải thêm nếu có lỗi
       });
       print('Error loading more tasks: $e');
+      
+      // Hiển thị thông báo lỗi
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải thêm nhiệm vụ: ${e.toString()}'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -195,62 +257,20 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     }
   }
 
-  Future<void> _fetchTaskStatistics() async {
-    try {
-      // Lấy thống kê nhiệm vụ hoàn thành
-      final completedStats = await ApiService.instance
-          .getUserTaskStatistics(
-        widget.userId,
-        status: 'completed',
-      )
-          .catchError((e) {
-        print('Error fetching completed task statistics: $e');
-        return {'count': 0};
-      });
-
-      // Lấy thống kê nhiệm vụ quá hạn
-      final overdueStats = await ApiService.instance
-          .getUserTaskStatistics(
-        widget.userId,
-        status: 'overdue',
-      )
-          .catchError((e) {
-        print('Error fetching overdue task statistics: $e');
-        return {'count': 0};
-      });
-
-      // Lấy thống kê nhiệm vụ đang làm
-      final inProgressStats = await ApiService.instance
-          .getUserTaskStatistics(
-        widget.userId,
-        status: 'in_progress',
-      )
-          .catchError((e) {
-        print('Error fetching in-progress task statistics: $e');
-        return {'count': 0};
-      });
-
-      setState(() {
-        _completedTaskCount = completedStats['count'] ?? 0;
-        _overdueTaskCount = overdueStats['count'] ?? 0;
-        _inProgressTaskCount = inProgressStats['count'] ?? 0;
-      });
-    } catch (e) {
-      print('Error fetching task statistics: $e');
-
-      // Nếu có lỗi, hiển thị giá trị mặc định
-      setState(() {
-        _completedTaskCount = 0;
-        _overdueTaskCount = 0;
-        _inProgressTaskCount = 0;
-      });
-    }
+  void _handleLogout() {
+    // Xử lý đăng xuất
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AdminAppBar(title: 'Chi tiết nhân viên'),
+      drawer: AdminDrawer(onLogout: _handleLogout),
+      appBar: AdminAppBar(
+        title: 'Chi tiết nhân viên',
+        showDrawerButton: false,
+        showBackButton: true,
+      ),
       bottomNavigationBar: AdminBottomNavBar(
         currentItem: AdminNavItem.users, // Users tab
         onItemSelected: (item) {
@@ -299,6 +319,28 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   }
 
   Widget _buildEmployeeCard() {
+    if (_user == null) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Text('Không có thông tin người dùng'),
+        ),
+      );
+    }
+    
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -346,7 +388,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _user!.role,
+                      _user!.roleDisplayName,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 14,
@@ -386,15 +428,28 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           _buildInfoRow(Icons.email, _user!.email),
           const SizedBox(height: 8),
           _buildInfoRow(Icons.phone, _user!.phone ?? 'Chưa cập nhật'),
-          // Hiển thị thông tin vai trò
           const SizedBox(height: 8),
           _buildInfoRow(Icons.work, _user!.roleDisplayName),
+          const SizedBox(height: 8),
+          _buildInfoRow(
+            Icons.calendar_today, 
+            'Tham gia: ${_formatDate(_user!.createdAt)}',
+            iconColor: Colors.blue,
+          ),
+          const SizedBox(height: 8),
+          _buildInfoRow(
+            Icons.update, 
+            'Cập nhật: ${_formatDate(_user!.updatedAt)}',
+            iconColor: Colors.purple,
+          ),
         ],
       ),
     );
   }
 
   Widget _buildInfoRow(IconData icon, String text, {Color? iconColor}) {
+    if (_user == null) return Container();
+    
     final textColor =
         _user!.isActive ? AppColors.primaryDark : Colors.redAccent;
 
@@ -420,6 +475,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   }
 
   Widget _buildStatisticsSection() {
+    if (_user == null) {
+      return Container();
+    }
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       padding: const EdgeInsets.all(16.0),
@@ -585,13 +644,14 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 )
               : Column(
                   children: [
-                    ..._tasks.map((task) => _buildTaskItem(task)),
-                    if (_isLoadingTasks)
+                    if (_tasks.isNotEmpty)
+                      ..._tasks.map((task) => _buildTaskItem(task))
+                    else if (_isLoadingTasks)
                       const Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Center(child: CircularProgressIndicator()),
                       ),
-                    if (_hasMoreTasks && !_isLoadingTasks)
+                    if (_hasMoreTasks && !_isLoadingTasks && _tasks.isNotEmpty)
                       Center(
                         child: TextButton.icon(
                           onPressed: _loadMoreTasks,
@@ -607,12 +667,37 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   }
 
   Widget _buildTaskItem(Map<String, dynamic> task) {
+    // Lấy thông tin từ task object
     final String title = task['title'] ?? 'Không có tiêu đề';
+    final String description = task['description'] ?? 'Không có mô tả';
     final String status = task['status'] ?? 'not_assigned';
     final String priority = task['priority'] ?? 'medium';
-    final String deadline = task['deadline'] != null
-        ? task['deadline'].toString().substring(0, 10)
-        : 'Không có hạn';
+    
+    // Xử lý ngày tháng
+    String dueDate = 'Không có hạn';
+    if (task['due_days'] != null) {
+      try {
+        final int dueDays = int.tryParse(task['due_days'].toString()) ?? 0;
+        DateTime? startDate;
+        
+        if (task['start_date'] != null && task['start_date'].toString().isNotEmpty) {
+          startDate = DateTime.parse(task['start_date'].toString());
+        }
+        
+        if (startDate != null) {
+          final DateTime dueDateObj = startDate.add(Duration(days: dueDays));
+          dueDate = '${dueDateObj.day}/${dueDateObj.month}/${dueDateObj.year}';
+        } else {
+          dueDate = '$dueDays ngày';
+        }
+      } catch (e) {
+        print('Error calculating due date: $e');
+        dueDate = 'Không xác định';
+      }
+    }
+    
+    // Lấy thông tin dự án từ database
+    final String projectName = task['project_name'] ?? 'Không thuộc dự án';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12.0),
@@ -628,14 +713,41 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (description.isNotEmpty && description != 'Không có mô tả') ...[
+              const SizedBox(height: 4),
+              Text(
+                description.length > 50 ? '${description.substring(0, 50)}...' : description,
+                style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.business, size: 14, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    projectName,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Row(
               children: [
                 Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  'Hạn: $deadline',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  'Hạn: $dueDate',
+                  style: TextStyle(
+                    color: status == 'overdue' ? Colors.red : Colors.grey[600], 
+                    fontSize: 12,
+                    fontWeight: status == 'overdue' ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
               ],
             ),
@@ -684,9 +796,84 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         ),
         onTap: () {
           // Xem chi tiết task
+          _showTaskDetailDialog(task);
         },
       ),
     );
+  }
+  
+  void _showTaskDetailDialog(Map<String, dynamic> task) {
+    // Tính ngày hoàn thành từ start_date và due_days
+    String dueDate = 'Không có hạn';
+    if (task['due_days'] != null) {
+      try {
+        final int dueDays = int.tryParse(task['due_days'].toString()) ?? 0;
+        DateTime? startDate;
+        
+        if (task['start_date'] != null && task['start_date'].toString().isNotEmpty) {
+          startDate = DateTime.parse(task['start_date'].toString());
+        }
+        
+        if (startDate != null) {
+          final DateTime dueDateObj = startDate.add(Duration(days: dueDays));
+          dueDate = '${dueDateObj.day}/${dueDateObj.month}/${dueDateObj.year}';
+        } else {
+          dueDate = '$dueDays ngày từ ngày bắt đầu';
+        }
+      } catch (e) {
+        print('Error calculating due date: $e');
+        dueDate = 'Không xác định';
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(task['title'] ?? 'Chi tiết nhiệm vụ'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Mô tả: ${task['description'] ?? 'Không có mô tả'}'),
+              const SizedBox(height: 8),
+              Text('Dự án: ${task['project_name'] ?? 'Không thuộc dự án'}'),
+              const SizedBox(height: 8),
+              Text('Trạng thái: ${_getStatusText(task['status'] ?? 'not_assigned')}'),
+              const SizedBox(height: 8),
+              Text('Độ ưu tiên: ${_getPriorityText(task['priority'] ?? 'medium')}'),
+              const SizedBox(height: 8),
+              Text('Ngày bắt đầu: ${_formatTaskDate(task['start_date'])}'),
+              const SizedBox(height: 8),
+              Text('Thời hạn: $dueDate (${task['due_days'] ?? 0} ngày)'),
+              const SizedBox(height: 8),
+              Text('Ngày tạo: ${_formatTaskDate(task['created_at'])}'),
+              const SizedBox(height: 8),
+              Text('Cập nhật lần cuối: ${_formatTaskDate(task['updated_at'])}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  String _formatTaskDate(dynamic dateStr) {
+    if (dateStr == null) return 'Không có dữ liệu';
+    if (dateStr.toString().isEmpty) return 'Không có dữ liệu';
+    
+    try {
+      final DateTime date = DateTime.parse(dateStr.toString());
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      print('Error parsing date: $e');
+      return 'Không hợp lệ';
+    }
   }
 
   String _getStatusText(String status) {
@@ -747,8 +934,33 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     if (fullName.isEmpty) return '';
 
     List<String> nameParts = fullName.split(' ');
-    if (nameParts.length == 1) return nameParts[0][0];
+    if (nameParts.isEmpty) return '';
+    if (nameParts.length == 1) {
+      return nameParts[0].isNotEmpty ? nameParts[0][0] : '';
+    }
 
-    return nameParts.first[0] + nameParts.last[0];
+    return (nameParts.first.isNotEmpty ? nameParts.first[0] : '') + 
+           (nameParts.last.isNotEmpty ? nameParts.last[0] : '');
+  }
+
+  String _formatDate(dynamic dateValue) {
+    if (dateValue == null) return 'Không có dữ liệu';
+    
+    try {
+      DateTime dateTime;
+      
+      if (dateValue is String) {
+        dateTime = DateTime.parse(dateValue);
+      } else if (dateValue is DateTime) {
+        dateTime = dateValue;
+      } else {
+        return 'Định dạng không hợp lệ';
+      }
+      
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    } catch (e) {
+      print('Error formatting date: $e');
+      return 'Định dạng không hợp lệ';
+    }
   }
 }

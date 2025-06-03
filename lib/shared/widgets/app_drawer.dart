@@ -3,19 +3,19 @@ import 'package:mission_master/core/models/user.dart';
 import 'package:mission_master/core/theme/app_colors.dart';
 import 'package:mission_master/services/api_service.dart';
 
-class AdminDrawer extends StatefulWidget {
+class AppDrawer extends StatefulWidget {
   final VoidCallback onLogout;
 
-  const AdminDrawer({
+  const AppDrawer({
     Key? key,
     required this.onLogout,
   }) : super(key: key);
 
   @override
-  State<AdminDrawer> createState() => _AdminDrawerState();
+  State<AppDrawer> createState() => _AppDrawerState();
 }
 
-class _AdminDrawerState extends State<AdminDrawer> {
+class _AppDrawerState extends State<AppDrawer> {
   User? _currentUser;
   bool _isLoading = true;
 
@@ -31,9 +31,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
     });
 
     try {
-      // Giả sử bạn có API để lấy thông tin người dùng hiện tại
-      // Nếu không có, bạn có thể lưu thông tin người dùng trong SharedPreferences sau khi đăng nhập
-      // và lấy lại từ đó
       final userData = await ApiService.instance.getCurrentUser();
       setState(() {
         _currentUser = User.fromMap(userData);
@@ -66,7 +63,25 @@ class _AdminDrawerState extends State<AdminDrawer> {
               title: 'Trang chủ',
               onTap: () {
                 Navigator.pop(context); // Đóng drawer
-                Navigator.pushReplacementNamed(context, '/admin/dashboard');
+                Navigator.pushReplacementNamed(context, '/home');
+              },
+            ),
+
+            _buildMenuItem(
+              icon: Icons.assignment,
+              title: 'Nhiệm vụ',
+              onTap: () {
+                Navigator.pop(context); // Đóng drawer
+                Navigator.pushNamed(context, '/tasks');
+              },
+            ),
+
+            _buildMenuItem(
+              icon: Icons.work,
+              title: 'Dự án',
+              onTap: () {
+                Navigator.pop(context); // Đóng drawer
+                Navigator.pushNamed(context, '/projects');
               },
             ),
 
@@ -75,32 +90,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
               title: 'Hồ sơ cá nhân',
               onTap: () {
                 Navigator.pop(context); // Đóng drawer
-                Navigator.pushNamed(context, '/admin/profile');
-              },
-            ),
-
-            ListTile(
-              leading: const Icon(Icons.people, color: AppColors.primaryMedium),
-              title: const Text('Quản lý nhân viên'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/admin');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_add, color: AppColors.primaryMedium),
-              title: const Text('Tạo tài khoản quản lý'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/admin/create_manager');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.notifications, color: AppColors.primaryMedium),
-              title: const Text('Thông báo'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/admin/notifications');
+                // TODO: Thêm route cho profile của user thường
               },
             ),
 
@@ -141,7 +131,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
                       radius: 30,
                       backgroundColor: Colors.white,
                       child: Text(
-                        _getInitials(_currentUser?.fullName ?? 'Admin'),
+                        _getInitials(_currentUser?.fullName ?? 'User'),
                         style: TextStyle(
                           color: AppColors.primaryDark,
                           fontWeight: FontWeight.bold,
@@ -155,7 +145,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _currentUser?.fullName ?? 'Admin',
+                            _currentUser?.fullName ?? 'User',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -164,7 +154,7 @@ class _AdminDrawerState extends State<AdminDrawer> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _currentUser?.roleDisplayName ?? 'Quản trị viên',
+                            _currentUser?.roleDisplayName ?? 'Nhân viên',
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
@@ -173,7 +163,6 @@ class _AdminDrawerState extends State<AdminDrawer> {
                         ],
                       ),
                     ),
-
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -208,4 +197,4 @@ class _AdminDrawerState extends State<AdminDrawer> {
 
     return nameParts.first[0] + nameParts.last[0];
   }
-}
+} 

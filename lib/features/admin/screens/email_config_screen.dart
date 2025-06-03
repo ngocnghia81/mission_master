@@ -2,42 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:mission_master/core/theme/app_colors.dart';
 import 'package:mission_master/features/admin/widgets/admin_app_bar.dart';
 import 'package:mission_master/features/admin/widgets/admin_drawer.dart';
-import 'package:mission_master/services/api_service.dart';
 import 'package:mission_master/services/email_service.dart';
 
-class CreateManagerScreen extends StatefulWidget {
-  const CreateManagerScreen({Key? key}) : super(key: key);
+class EmailConfigScreen extends StatefulWidget {
+  const EmailConfigScreen({Key? key}) : super(key: key);
 
   @override
-  State<CreateManagerScreen> createState() => _CreateManagerScreenState();
+  State<EmailConfigScreen> createState() => _EmailConfigScreenState();
 }
 
-class _CreateManagerScreenState extends State<CreateManagerScreen> {
+class _EmailConfigScreenState extends State<EmailConfigScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
+  
   final _emailController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _phoneController = TextEditingController();
-
+  final _passwordController = TextEditingController();
+  final _smtpHostController = TextEditingController();
+  final _smtpPortController = TextEditingController(text: '587');
+  final _senderNameController = TextEditingController(text: 'Mission Master');
+  
+  bool _useSSL = true;
   bool _isLoading = false;
-  String? _errorMessage;
   bool _isSuccess = false;
-  String _generatedPassword = '';
-
+  String? _errorMessage;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentConfig();
+  }
+  
+  void _loadCurrentConfig() {
+    final emailService = EmailService.instance;
+    _emailController.text = emailService.smtpUsername;
+    _smtpHostController.text = emailService.smtpHost;
+    _smtpPortController.text = emailService.smtpPort.toString();
+    _senderNameController.text = emailService.senderName;
+    _useSSL = emailService.smtpSecure;
+  }
+  
   void _handleLogout() {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   void dispose() {
-    _fullNameController.dispose();
     _emailController.dispose();
-    _usernameController.dispose();
-    _phoneController.dispose();
+    _passwordController.dispose();
+    _smtpHostController.dispose();
+    _smtpPortController.dispose();
+    _senderNameController.dispose();
     super.dispose();
   }
 
-  Future<void> _createManagerAccount() async {
+  Future<void> _saveConfig() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -49,48 +66,28 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
     });
 
     try {
-      // Tạo mật khẩu ngẫu nhiên
-      final password = EmailService.instance.generateRandomPassword();
-      _generatedPassword = password;
-
-      // Tạo tài khoản quản lý
-      final success = await ApiService.instance.createManagerAccount(
-        fullName: _fullNameController.text.trim(),
-        email: _emailController.text.trim(),
-        username: _usernameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        password: password,
+      // Cấu hình SMTP
+      EmailService.instance.configureSmtp(
+        username: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        host: _smtpHostController.text.trim(),
+        port: int.parse(_smtpPortController.text.trim()),
+        secure: _useSSL,
+        senderName: _senderNameController.text.trim(),
       );
-
-      if (success) {
-        // Gửi email với thông tin đăng nhập
-        final emailSent = await EmailService.instance.sendWelcomeEmail(
-          email: _emailController.text.trim(),
-          fullName: _fullNameController.text.trim(),
-          username: _usernameController.text.trim(),
-          password: password,
-        );
-
-        if (emailSent) {
-          setState(() {
-            _isSuccess = true;
-            _isLoading = false;
-          });
-          
-          // Hiển thị thông báo thành công
-          _showSuccessDialog();
-        } else {
-          setState(() {
-            _errorMessage = 'Tạo tài khoản thành công nhưng không gửi được email. Vui lòng thử lại.';
-            _isLoading = false;
-          });
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Không thể tạo tài khoản quản lý. Vui lòng thử lại.';
-          _isLoading = false;
-        });
-      }
+      
+      setState(() {
+        _isSuccess = true;
+        _isLoading = false;
+      });
+      
+      // Hiển thị thông báo thành công
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cấu hình email đã được lưu thành công'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
       setState(() {
         _errorMessage = 'Đã xảy ra lỗi: ${e.toString()}';
@@ -99,65 +96,13 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
     }
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Tạo tài khoản thành công'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Tài khoản quản lý đã được tạo thành công và email thông báo đã được gửi.'),
-            const SizedBox(height: 16),
-            const Text('Thông tin đăng nhập:', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('Tên đăng nhập: ${_usernameController.text}'),
-            Text('Mật khẩu: $_generatedPassword'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetForm();
-            },
-            child: const Text('Đóng'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetForm();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryMedium,
-            ),
-            child: const Text('Tạo tài khoản khác'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _resetForm() {
-    _fullNameController.clear();
-    _emailController.clear();
-    _usernameController.clear();
-    _phoneController.clear();
-    setState(() {
-      _isSuccess = false;
-      _errorMessage = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       drawer: AdminDrawer(onLogout: _handleLogout),
       appBar: const AdminAppBar(
-        title: 'Tạo tài khoản quản lý',
+        title: 'Cấu hình Email',
         showDrawerButton: true,
         showBackButton: true,
       ),
@@ -169,7 +114,7 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
             children: [
               const SizedBox(height: 16),
               const Text(
-                'Tạo tài khoản quản lý mới',
+                'Cấu hình tài khoản email',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -177,7 +122,7 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Điền thông tin để tạo tài khoản quản lý. Mật khẩu sẽ được tạo tự động và gửi qua email.',
+                'Nhập thông tin tài khoản email để gửi email chào mừng đến quản lý mới.',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey,
@@ -212,22 +157,9 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTextField(
-              controller: _fullNameController,
-              label: 'Họ và tên',
-              hintText: 'Nhập họ và tên đầy đủ',
-              icon: Icons.person,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập họ và tên';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
               controller: _emailController,
               label: 'Email',
-              hintText: 'Nhập địa chỉ email',
+              hintText: 'Nhập địa chỉ email gửi',
               icon: Icons.email,
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
@@ -242,38 +174,81 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
             ),
             const SizedBox(height: 16),
             _buildTextField(
-              controller: _usernameController,
-              label: 'Tên đăng nhập',
-              hintText: 'Nhập tên đăng nhập',
-              icon: Icons.account_circle,
+              controller: _passwordController,
+              label: 'Mật khẩu',
+              hintText: 'Nhập mật khẩu email',
+              icon: Icons.lock,
+              obscureText: true,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập tên đăng nhập';
-                }
-                if (value.length < 4) {
-                  return 'Tên đăng nhập phải có ít nhất 4 ký tự';
+                  return 'Vui lòng nhập mật khẩu';
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
             _buildTextField(
-              controller: _phoneController,
-              label: 'Số điện thoại',
-              hintText: 'Nhập số điện thoại',
-              icon: Icons.phone,
-              keyboardType: TextInputType.phone,
+              controller: _smtpHostController,
+              label: 'SMTP Host',
+              hintText: 'Ví dụ: smtp.gmail.com',
+              icon: Icons.dns,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập số điện thoại';
-                }
-                if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                  return 'Số điện thoại không hợp lệ (10 chữ số)';
+                  return 'Vui lòng nhập SMTP host';
                 }
                 return null;
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            _buildTextField(
+              controller: _smtpPortController,
+              label: 'SMTP Port',
+              hintText: 'Ví dụ: 587',
+              icon: Icons.settings_ethernet,
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Vui lòng nhập SMTP port';
+                }
+                if (!RegExp(r'^\d+$').hasMatch(value)) {
+                  return 'Port phải là số';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              controller: _senderNameController,
+              label: 'Tên người gửi',
+              hintText: 'Ví dụ: Mission Master',
+              icon: Icons.person,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Vui lòng nhập tên người gửi';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: const Text('Sử dụng SSL/TLS'),
+              subtitle: const Text('Bật cho kết nối bảo mật'),
+              value: _useSSL,
+              activeColor: AppColors.primaryMedium,
+              onChanged: (value) {
+                setState(() {
+                  _useSSL = value;
+                  if (value && _smtpPortController.text == '587') {
+                    _smtpPortController.text = '465';
+                  } else if (!value && _smtpPortController.text == '465') {
+                    _smtpPortController.text = '587';
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
             if (_errorMessage != null)
               Container(
                 padding: const EdgeInsets.all(12),
@@ -295,12 +270,33 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
                   ],
                 ),
               ),
+            if (_isSuccess)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Cấu hình email đã được lưu thành công',
+                        style: TextStyle(color: Colors.green),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _createManagerAccount,
+                onPressed: _isLoading ? null : _saveConfig,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryMedium,
                   shape: RoundedRectangleBorder(
@@ -310,7 +306,7 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'Tạo tài khoản',
+                        'Lưu cấu hình',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -380,4 +376,4 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
       ],
     );
   }
-}
+} 

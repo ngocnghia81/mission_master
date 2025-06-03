@@ -43,13 +43,25 @@ Future<Response> onRequest(RequestContext context, String id) async {
     final limit = int.tryParse(queryParams['limit'] ?? '10') ?? 10;
     final offset = (page - 1) * limit;
     
-    // Lấy danh sách nhiệm vụ của người dùng
+    // Lấy danh sách nhiệm vụ của người dùng với thông tin dự án
     final tasks = await db.query('''
-      SELECT t.* 
+      SELECT 
+        t.*,
+        p.name as project_name,
+        p.id as project_id
       FROM tasks t
       JOIN project_memberships pm ON t.membership_id = pm.id
+      JOIN projects p ON pm.project_id = p.id
       WHERE pm.user_id = @user_id
-      ORDER BY t.created_at DESC
+      ORDER BY 
+        CASE 
+          WHEN t.status = 'overdue' THEN 1
+          WHEN t.status = 'in_progress' THEN 2
+          WHEN t.status = 'not_assigned' THEN 3
+          WHEN t.status = 'completed' THEN 4
+          ELSE 5
+        END,
+        t.due_days ASC
       LIMIT @limit OFFSET @offset
     ''', {
       'user_id': userId,

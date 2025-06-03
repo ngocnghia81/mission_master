@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mission_master/features/admin/screens/admin_home_screen.dart';
+import 'package:mission_master/features/admin/screens/create_manager_screen.dart';
 import 'package:mission_master/features/admin/screens/employee_detail_screen.dart';
+import 'package:mission_master/features/admin/screens/notification_screen.dart';
 import 'package:mission_master/features/admin/screens/profile_screen.dart';
 import 'package:mission_master/features/auth/screens/login_screen.dart';
 import 'package:mission_master/features/auth/screens/register_screen.dart';
@@ -37,7 +39,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/admin',
+      initialRoute: '/login',
       routes: {
         '/': (context) => LoginScreen(),
         '/login': (context) => LoginScreen(),
@@ -47,6 +49,9 @@ class MyApp extends StatelessWidget {
         '/projects': (context) => const ProjectListScreen(),
         '/admin': (context) => const AdminHomeScreen(),
         '/admin/profile': (context) => const ProfileScreen(),
+        '/admin/dashboard': (context) => const AdminHomeScreen(),
+        '/admin/notifications': (context) => const AdminNotificationScreen(),
+        '/admin/create_manager': (context) => const CreateManagerScreen(),
       },
       // Handle route generation based on user role
       onGenerateRoute: (settings) {

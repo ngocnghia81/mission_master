@@ -33,7 +33,7 @@ Future<Response> onRequest(RequestContext context) async {
 
     // Tìm người dùng theo username
     final user = await db.queryOne(
-      'SELECT * FROM users WHERE username = @username',
+      'SELECT * FROM users WHERE username = @username OR email = @username AND is_active = true',
       {'username': username},
     );
 

@@ -40,27 +40,58 @@ Future<Response> onRequest(RequestContext context, String id) async {
     final queryParams = context.request.uri.queryParameters;
     final status = queryParams['status'];
 
-    // Xây dựng câu truy vấn SQL dựa trên tham số status
-    String sql = '''
-      SELECT COUNT(*) as count 
-      FROM tasks t
-      JOIN project_memberships pm ON t.membership_id = pm.id
-      WHERE pm.user_id = @user_id
-    ''';
-
-    final params = <String, dynamic>{'user_id': userId};
-
-    // Thêm điều kiện trạng thái nếu có
+    // Nếu có yêu cầu cụ thể về trạng thái
     if (status != null && status.isNotEmpty) {
-      sql += ' AND t.status = @status';
-      // Đảm bảo status được xử lý như một chuỗi
-      params['status'] = status.toString();
+      // Xây dựng câu truy vấn SQL dựa trên tham số status
+      final sql = '''
+        SELECT COUNT(*) as count 
+        FROM tasks t
+        JOIN project_memberships pm ON t.membership_id = pm.id
+        WHERE pm.user_id = @user_id AND t.status = @status
+      ''';
+
+      final params = <String, dynamic>{
+        'user_id': userId,
+        'status': status.toString(),
+      };
+
+      // Thực hiện truy vấn
+      final result = await db.queryOne(sql, params);
+      return Response.json(body: {'count': result?['count'] ?? 0});
+    } else {
+      // Nếu không có yêu cầu cụ thể, trả về thống kê tổng hợp
+      final sql = '''
+        SELECT 
+          SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) as completed_count,
+          SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
+          SUM(CASE WHEN t.status = 'overdue' THEN 1 ELSE 0 END) as overdue_count,
+          SUM(CASE WHEN t.status = 'not_assigned' THEN 1 ELSE 0 END) as not_assigned_count,
+          COUNT(*) as total_count
+        FROM tasks t
+        JOIN project_memberships pm ON t.membership_id = pm.id
+        WHERE pm.user_id = @user_id
+      ''';
+
+      final result = await db.queryOne(sql, {'user_id': userId});
+      
+      if (result == null) {
+        return Response.json(body: {
+          'completed_count': 0,
+          'in_progress_count': 0,
+          'overdue_count': 0,
+          'not_assigned_count': 0,
+          'total_count': 0,
+        });
+      }
+      
+      return Response.json(body: {
+        'completed_count': result['completed_count'] ?? 0,
+        'in_progress_count': result['in_progress_count'] ?? 0,
+        'overdue_count': result['overdue_count'] ?? 0,
+        'not_assigned_count': result['not_assigned_count'] ?? 0,
+        'total_count': result['total_count'] ?? 0,
+      });
     }
-
-    // Thực hiện truy vấn
-    final result = await db.queryOne(sql, params);
-
-    return Response.json(body: {'count': result?['count'] ?? 0});
   } catch (e) {
     return Response.json(
       body: {'error': e.toString()},

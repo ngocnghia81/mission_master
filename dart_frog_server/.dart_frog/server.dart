@@ -13,6 +13,7 @@ import '../routes/api/auth/register/index.dart' as api_auth_register_index;
 import '../routes/api/auth/login/index.dart' as api_auth_login_index;
 import '../routes/api/admin/users/index.dart' as api_admin_users_index;
 import '../routes/api/admin/users/[id]/status.dart' as api_admin_users_$id_status;
+import '../routes/api/admin/users/[id]/index.dart' as api_admin_users_$id_index;
 import '../routes/api/admin/users/[id]/tasks/index.dart' as api_admin_users_$id_tasks_index;
 import '../routes/api/admin/users/[id]/tasks/statistics/index.dart' as api_admin_users_$id_tasks_statistics_index;
 import '../routes/api/admin/users/[id]/tasks/count/index.dart' as api_admin_users_$id_tasks_count_index;
@@ -21,7 +22,7 @@ import '../routes/_middleware.dart' as middleware;
 
 void main() async {
   final address = InternetAddress.tryParse('') ?? InternetAddress.anyIPv6;
-  final port = int.tryParse(Platform.environment['PORT'] ?? '8080') ?? 8080;
+  final port = int.tryParse(Platform.environment['PORT'] ?? '8081') ?? 8081;
   hotReload(() => createServer(address, port));
 }
 
@@ -70,7 +71,7 @@ Handler buildApiAdminUsers$idTasksHandler(String id,) {
 Handler buildApiAdminUsers$idHandler(String id,) {
   final pipeline = const Pipeline();
   final router = Router()
-    ..all('/status', (context) => api_admin_users_$id_status.onRequest(context,id,));
+    ..all('/status', (context) => api_admin_users_$id_status.onRequest(context,id,))..all('/', (context) => api_admin_users_$id_index.onRequest(context,id,));
   return pipeline.addHandler(router);
 }
 
