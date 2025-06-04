@@ -16,13 +16,12 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _phoneController = TextEditingController();
 
   bool _isLoading = false;
   String? _errorMessage;
   bool _isSuccess = false;
   String _generatedPassword = '';
+  String _generatedUsername = '';
 
   void _handleLogout() {
     Navigator.pushReplacementNamed(context, '/login');
@@ -32,8 +31,6 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
   void dispose() {
     _fullNameController.dispose();
     _emailController.dispose();
-    _usernameController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -52,13 +49,15 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
       // Tạo mật khẩu ngẫu nhiên
       final password = EmailService.instance.generateRandomPassword();
       _generatedPassword = password;
+      
+      // Tạo username từ email
+      _generatedUsername = EmailService.instance.generateUsernameFromEmail(_emailController.text.trim());
 
       // Tạo tài khoản quản lý
       final success = await ApiService.instance.createManagerAccount(
         fullName: _fullNameController.text.trim(),
         email: _emailController.text.trim(),
-        username: _usernameController.text.trim(),
-        phone: _phoneController.text.trim(),
+        username: _generatedUsername,
         password: password,
       );
 
@@ -67,7 +66,7 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
         final emailSent = await EmailService.instance.sendWelcomeEmail(
           email: _emailController.text.trim(),
           fullName: _fullNameController.text.trim(),
-          username: _usernameController.text.trim(),
+          username: _generatedUsername,
           password: password,
         );
 
@@ -113,7 +112,7 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
             const SizedBox(height: 16),
             const Text('Thông tin đăng nhập:', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('Tên đăng nhập: ${_usernameController.text}'),
+            Text('Tên đăng nhập: $_generatedUsername'),
             Text('Mật khẩu: $_generatedPassword'),
           ],
         ),
@@ -143,8 +142,6 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
   void _resetForm() {
     _fullNameController.clear();
     _emailController.clear();
-    _usernameController.clear();
-    _phoneController.clear();
     setState(() {
       _isSuccess = false;
       _errorMessage = null;
@@ -241,37 +238,25 @@ class _CreateManagerScreenState extends State<CreateManagerScreen> {
               },
             ),
             const SizedBox(height: 16),
-            _buildTextField(
-              controller: _usernameController,
-              label: 'Tên đăng nhập',
-              hintText: 'Nhập tên đăng nhập',
-              icon: Icons.account_circle,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập tên đăng nhập';
-                }
-                if (value.length < 4) {
-                  return 'Tên đăng nhập phải có ít nhất 4 ký tự';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _phoneController,
-              label: 'Số điện thoại',
-              hintText: 'Nhập số điện thoại',
-              icon: Icons.phone,
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập số điện thoại';
-                }
-                if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                  return 'Số điện thoại không hợp lệ (10 chữ số)';
-                }
-                return null;
-              },
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: const Text(
+                      'Tên đăng nhập sẽ được tạo tự động từ địa chỉ email và mật khẩu sẽ được gửi qua email.',
+                      style: TextStyle(color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             if (_errorMessage != null)

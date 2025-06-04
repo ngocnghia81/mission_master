@@ -7,37 +7,75 @@ class EmailService {
   static final EmailService _instance = EmailService._internal();
   static EmailService get instance => _instance;
   
-  // Cấu hình SMTP cho Outlook - Thay đổi thông tin này theo tài khoản email của bạn
-  String _emailAddress = 'ngocnghia2004nn@outlook.com'; // Thay đổi thành email Outlook của bạn
-  String _password = 'Lshsg47@'; // Thay đổi thành mật khẩu Outlook của bạn
+  // Gmail configuration
+  String _emailAddress = 'ngocnghia1999nn@gmail.com'; 
+  String _password = 'yegl kniv mxud sgcz'; // App password for Gmail
   String _senderName = 'Mission Master';
   
-  // Cấu hình SMTP server cho Outlook
-  final String _smtpHost = 'smtp-mail.outlook.com';
-  final int _smtpPort = 587;
-  final bool _smtpSecure = false; // Outlook sử dụng STARTTLS
-
   EmailService._internal();
+
+  // Tạo tên đăng nhập từ email
+  String generateUsernameFromEmail(String email) {
+    // Lấy phần trước @ của email
+    String username = email.split('@')[0];
+    
+    // Loại bỏ các ký tự đặc biệt, chỉ giữ lại chữ cái và số
+    username = username.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    
+    // Nếu username quá ngắn, thêm số ngẫu nhiên
+    if (username.length < 5) {
+      final random = Random();
+      final randomNumber = random.nextInt(1000);
+      username = '${username}${randomNumber}';
+    }
+    
+    return username.toLowerCase();
+  }
 
   // Gửi email chào mừng
   Future<bool> sendWelcomeEmail({
     required String email,
     required String fullName,
-    required String username,
+    String? username,
     required String password,
   }) async {
     try {
-      // Kiểm tra xem đã cấu hình email chưa
-      if (_emailAddress == 'your.email@outlook.com' || _password == 'your-password') {
-        print('Email not properly configured. Using dummy email sending...');
-        // Giả lập gửi email nếu chưa cấu hình
+      // Nếu không có username, tạo từ email
+      final finalUsername = username ?? generateUsernameFromEmail(email);
+      
+      // Thử gửi email thật
+      try {
+        // Cấu hình SMTP server cho Gmail với SSL
+        final smtpServer = SmtpServer(
+          'smtp.gmail.com',
+          port: 465,
+          ssl: true,
+          username: _emailAddress,
+          password: _password,
+        );
+        
+        final message = Message()
+          ..from = Address(_emailAddress, _senderName)
+          ..recipients.add(email)
+          ..subject = 'Chào mừng đến với Mission Master'
+          ..html = generateWelcomeEmailContent(fullName, finalUsername, password);
+        
+        print('Đang gửi email đến $email sử dụng SMTP...');
+        final sendReport = await send(message, smtpServer);
+        print('Email đã gửi: ${sendReport.toString()}');
+        
+        return true;
+      } catch (emailError) {
+        print('Lỗi khi gửi email thật: $emailError');
+        
+        // Nếu gửi email thật thất bại, chuyển sang giả lập
         print('=================== GIẢ LẬP GỬI EMAIL ===================');
         print('Gửi email đến: $email');
         print('Họ tên: $fullName');
-        print('Tên đăng nhập: $username');
+        print('Tên đăng nhập: $finalUsername');
         print('Mật khẩu: $password');
         print('Nội dung email:');
-        print(generateWelcomeEmailContent(fullName, username, password));
+        print(generateWelcomeEmailContent(fullName, finalUsername, password));
         print('=========================================================');
         
         // Giả lập độ trễ của việc gửi email
@@ -45,32 +83,8 @@ class EmailService {
         
         return true;
       }
-      
-      // Cấu hình SMTP server cho Outlook
-      final smtpServer = SmtpServer(
-        _smtpHost,
-        port: _smtpPort,
-        ssl: _smtpSecure,
-        username: _emailAddress,
-        password: _password,
-        allowInsecure: true, // Cho phép kết nối không bảo mật (cần thiết cho một số cấu hình)
-      );
-      
-      // Tạo message
-      final message = Message()
-        ..from = Address(_emailAddress, _senderName)
-        ..recipients.add(email)
-        ..subject = 'Chào mừng đến với Mission Master'
-        ..html = generateWelcomeEmailContent(fullName, username, password);
-      
-      // Gửi email
-      print('Sending email to $email using Outlook SMTP...');
-      final sendReport = await send(message, smtpServer);
-      print('Email sent: ${sendReport.toString()}');
-      
-      return true;
     } catch (e) {
-      print('Error sending email: $e');
+      print('Lỗi gửi email: $e');
       return false;
     }
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:mission_master/core/models/user.dart';
+import 'package:mission_master/services/email_service.dart';
 
 /// Service để gọi API từ Dart Frog server
 class ApiService {
@@ -13,16 +14,6 @@ class ApiService {
 
   // Lưu trữ thông tin người dùng hiện tại sau khi đăng nhập
   Map<String, dynamic>? _currentUserData;
-
-  // Giả lập dữ liệu người dùng hiện tại
-  final Map<String, dynamic> _currentUser = {
-    'id': '1',
-    'username': 'admin',
-    'email': 'admin@example.com',
-    'fullName': 'Admin User',
-    'role': 'admin',
-    'isActive': true,
-  };
 
   // Giả lập danh sách quản lý
   final List<Map<String, dynamic>> _managers = [];
@@ -276,7 +267,14 @@ class ApiService {
       }
       
       // Nếu không có dữ liệu từ API, sử dụng dữ liệu mẫu
-      final userData = Map<String, dynamic>.from(_currentUser);
+      final userData = Map<String, dynamic>.from({
+        'id': 1,
+        'username': 'default_user',
+        'email': 'default@example.com',
+        'fullName': 'Default User',
+        'role': 'employee',
+        'isActive': true
+      });
       
       // Đảm bảo id được trả về dưới dạng int
       if (userData['id'] != null && userData['id'] is String) {
@@ -292,7 +290,7 @@ class ApiService {
         userData['updated_at'] = DateTime.now().toIso8601String();
       }
       
-      print('getCurrentUser returning from _currentUser: $userData');
+      print('getCurrentUser returning default user data: $userData');
       return userData;
     } catch (e) {
       print('Error getting current user: $e');
@@ -527,17 +525,20 @@ class ApiService {
   Future<bool> createManagerAccount({
     required String fullName,
     required String email,
-    required String username,
-    required String phone,
+    String? username,
+    String? phone,
     required String password,
   }) async {
     try {
       // Giả lập độ trễ của API
       await Future.delayed(const Duration(seconds: 1));
       
+      // Tạo username từ email nếu không được cung cấp
+      final finalUsername = username ?? EmailService.instance.generateUsernameFromEmail(email);
+      
       // Kiểm tra email và username đã tồn tại chưa
       final existingManager = _managers.firstWhere(
-        (manager) => manager['email'] == email || manager['username'] == username,
+        (manager) => manager['email'] == email || manager['username'] == finalUsername,
         orElse: () => <String, dynamic>{},
       );
       
@@ -550,8 +551,8 @@ class ApiService {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'fullName': fullName,
         'email': email,
-        'username': username,
-        'phone': phone,
+        'username': finalUsername,
+        'phone': phone ?? '', // Số điện thoại là tùy chọn
         'password': password, // Trong thực tế cần mã hóa mật khẩu
         'role': 'manager',
         'isActive': true,

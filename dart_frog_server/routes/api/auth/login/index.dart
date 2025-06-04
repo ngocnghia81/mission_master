@@ -23,7 +23,7 @@ Future<Response> onRequest(RequestContext context) async {
     // Kiểm tra dữ liệu đầu vào
     if (!data.containsKey('username') || !data.containsKey('password')) {
       return Response.json(
-        body: {'error': 'Username and password are required'},
+        body: {'error': 'Username, email and password are required'},
         statusCode: HttpStatus.badRequest,
       );
     }
@@ -40,7 +40,7 @@ Future<Response> onRequest(RequestContext context) async {
     // Nếu không tìm thấy người dùng
     if (user == null) {
       return Response.json(
-        body: {'error': 'Invalid username or password'},
+        body: {'error': 'Invalid username, email or password'},
         statusCode: HttpStatus.unauthorized,
       );
     }
@@ -51,7 +51,7 @@ Future<Response> onRequest(RequestContext context) async {
 
     if (!passwordMatches) {
       return Response.json(
-        body: {'error': 'Invalid username or password'},
+        body: {'error': 'Invalid username, email or password'},
         statusCode: HttpStatus.unauthorized,
       );
     }
