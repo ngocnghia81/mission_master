@@ -6,9 +6,18 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 
 
+import '../routes/api/user/index.dart' as api_user_index;
 import '../routes/api/tasks/attachments/index.dart' as api_tasks_attachments_index;
 import '../routes/api/manager/projects/index.dart' as api_manager_projects_index;
 import '../routes/api/employee/tasks/index.dart' as api_employee_tasks_index;
+import '../routes/api/employee/task_details/index.dart' as api_employee_task_details_index;
+import '../routes/api/employee/projects/index.dart' as api_employee_projects_index;
+import '../routes/api/employee/project_memberships/index.dart' as api_employee_project_memberships_index;
+import '../routes/api/employee/penalties/index.dart' as api_employee_penalties_index;
+import '../routes/api/employee/notifications/index.dart' as api_employee_notifications_index;
+import '../routes/api/employee/evaluations/index.dart' as api_employee_evaluations_index;
+import '../routes/api/employee/comments/index.dart' as api_employee_comments_index;
+import '../routes/api/employee/attachments/index.dart' as api_employee_attachments_index;
 import '../routes/api/auth/register/index.dart' as api_auth_register_index;
 import '../routes/api/auth/login/index.dart' as api_auth_login_index;
 import '../routes/api/admin/users/index.dart' as api_admin_users_index;
@@ -32,9 +41,18 @@ Handler buildRootHandler() {
     ..mount('/api/admin/users', (context) => buildApiAdminUsersHandler()(context))
     ..mount('/api/auth/login', (context) => buildApiAuthLoginHandler()(context))
     ..mount('/api/auth/register', (context) => buildApiAuthRegisterHandler()(context))
+    ..mount('/api/employee/attachments', (context) => buildApiEmployeeAttachmentsHandler()(context))
+    ..mount('/api/employee/comments', (context) => buildApiEmployeeCommentsHandler()(context))
+    ..mount('/api/employee/evaluations', (context) => buildApiEmployeeEvaluationsHandler()(context))
+    ..mount('/api/employee/notifications', (context) => buildApiEmployeeNotificationsHandler()(context))
+    ..mount('/api/employee/penalties', (context) => buildApiEmployeePenaltiesHandler()(context))
+    ..mount('/api/employee/project_memberships', (context) => buildApiEmployeeProjectMembershipsHandler()(context))
+    ..mount('/api/employee/projects', (context) => buildApiEmployeeProjectsHandler()(context))
+    ..mount('/api/employee/task_details', (context) => buildApiEmployeeTaskDetailsHandler()(context))
     ..mount('/api/employee/tasks', (context) => buildApiEmployeeTasksHandler()(context))
     ..mount('/api/manager/projects', (context) => buildApiManagerProjectsHandler()(context))
-    ..mount('/api/tasks/attachments', (context) => buildApiTasksAttachmentsHandler()(context));
+    ..mount('/api/tasks/attachments', (context) => buildApiTasksAttachmentsHandler()(context))
+    ..mount('/api/user', (context) => buildApiUserHandler()(context));
   return pipeline.addHandler(router);
 }
 
@@ -59,6 +77,62 @@ Handler buildApiAuthRegisterHandler() {
   return pipeline.addHandler(router);
 }
 
+Handler buildApiEmployeeAttachmentsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_attachments_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiEmployeeCommentsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_comments_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiEmployeeEvaluationsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_evaluations_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiEmployeeNotificationsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_notifications_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiEmployeePenaltiesHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_penalties_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiEmployeeProjectMembershipsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_project_memberships_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiEmployeeProjectsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_projects_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiEmployeeTaskDetailsHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_employee_task_details_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
 Handler buildApiEmployeeTasksHandler() {
   final pipeline = const Pipeline();
   final router = Router()
@@ -77,6 +151,13 @@ Handler buildApiTasksAttachmentsHandler() {
   final pipeline = const Pipeline();
   final router = Router()
     ..all('/', (context) => api_tasks_attachments_index.onRequest(context,));
+  return pipeline.addHandler(router);
+}
+
+Handler buildApiUserHandler() {
+  final pipeline = const Pipeline();
+  final router = Router()
+    ..all('/', (context) => api_user_index.onRequest(context,));
   return pipeline.addHandler(router);
 }
 

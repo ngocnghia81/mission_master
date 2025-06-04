@@ -34,6 +34,14 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   String _selectedFilter = 'Tất cả';
   final List<String> _filters = ['Tất cả', 'Cần làm', 'Đang làm', 'Xong'];
 
+  // Danh sách bottom nav bar
+  final List<BottomNavItem> _navItems = [
+    BottomNavItem.home,
+    BottomNavItem.projects,
+    BottomNavItem.tasks,
+    BottomNavItem.profile,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -48,18 +56,18 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     try {
       // Lấy dữ liệu từ API
       final apiService = ApiService.instance;
-      
+
       // Lấy danh sách người dùng
       final users = await apiService.getUsers();
-      
+
       // Lưu danh sách người dùng
       setState(() {
         _users = users;
       });
-      
+
       // Lấy danh sách dự án
       final projects = await apiService.getProjects();
-      
+
       // Lưu danh sách dự án
       setState(() {
         _projects = projects;
@@ -69,11 +77,10 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       setState(() {
         _isLoading = false;
       });
-      
+
       // Hiển thị thông báo lỗi
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}'))
-      );
+          SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}')));
     }
   }
 
@@ -104,7 +111,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       } else if (_selectedFilter == 'Xong') {
         return project.status == project_model.ProjectStatus.completed.value;
       }
-      
+
       return true;
     }).toList();
   }
@@ -134,15 +141,13 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   // Tìm tên người dùng dựa vào ID
   String _getUserName(int? userId) {
     if (userId == null) return 'N/A';
-    
+
     // Tìm người dùng trong danh sách Map<String, dynamic>
     final userMap = _users.firstWhere(
       (user) => user['id'] == userId,
-      orElse: () => {
-        'full_name': 'Không tìm thấy'
-      },
+      orElse: () => {'full_name': 'Không tìm thấy'},
     );
-    
+
     // Trả về tên người dùng
     return userMap['full_name'] ?? 'N/A';
   }
@@ -244,6 +249,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       bottomNavigationBar: BottomNavBarWidget(
         currentItem: _currentNavItem,
         onItemSelected: _handleNavItemSelected,
+        items: _navItems,
       ),
     );
   }

@@ -18,23 +18,46 @@ Future<Response> onRequest(RequestContext context) async {
         final taskId = int.tryParse(
           context.request.uri.queryParameters['task_id'] ?? '',
         );
-        
-        if (taskId == null) {
-          return Response.json(
-            body: {'error': 'Thiếu task_id'},
-            statusCode: HttpStatus.badRequest,
-          );
-        }
-        
-        // Lấy danh sách tệp đính kèm của task
-        final attachments = await db.query(
-          'SELECT * FROM attachments WHERE task_id = @taskId',
-          {'taskId': taskId},
+        //Lấy task_detail_id từ query parameters
+        final taskDetailId = int.tryParse(
+          context.request.uri.queryParameters['task_detail_id'] ?? '',
         );
         
-        // Chuyển đổi DateTime thành chuỗi trước khi trả về JSON
-        final jsonAttachments = JsonUtils.convertListToJson(attachments);
-        return Response.json(body: jsonAttachments);
+        //Kiểm tra nếu có task_id thì lấy tệp đính kèm của task
+        if (taskId != null) {
+          // Lấy danh sách tệp đính kèm của task
+          final attachments = await db.query(
+            '''SELECT * FROM attachments 
+            JOIN task_details td ON attachments.task_detail_id = td.id
+            WHERE td.task_id = @taskId''',
+            {'taskId': taskId},
+          );
+          
+          // Chuyển đổi DateTime thành chuỗi trước khi trả về JSON
+          final jsonAttachments = JsonUtils.convertListToJson(attachments);
+          return Response.json(body: jsonAttachments);
+        }
+        else{
+          //Kiểm tra nếu có task_detail_id thì lấy tệp đính kèm của task_detail
+          if (taskDetailId != null) {
+            // Lấy danh sách tệp đính kèm của task_detail
+          final attachments = await db.query(
+            'SELECT * FROM attachments WHERE task_detail_id = @taskDetailId',
+            {'taskDetailId': taskDetailId},
+          );
+          
+          // Chuyển đổi DateTime thành chuỗi trước khi trả về JSON
+          final jsonAttachments = JsonUtils.convertListToJson(attachments);
+          return Response.json(body: jsonAttachments);
+          }
+          
+          else{
+            return Response.json(
+              body: {'error': 'Thiếu task_id'},
+              statusCode: HttpStatus.badRequest,
+            );
+          }
+        }
       } catch (e) {
         return Response.json(
           body: {'error': e.toString()},

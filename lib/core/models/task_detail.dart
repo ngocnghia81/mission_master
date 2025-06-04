@@ -25,7 +25,8 @@ class TaskDetail {
   });
 
   // Từ JSON thành TaskDetail
-  factory TaskDetail.fromJson(Map<String, dynamic> json) => _$TaskDetailFromJson(json);
+  factory TaskDetail.fromJson(Map<String, dynamic> json) =>
+      _$TaskDetailFromJson(json);
 
   // Từ TaskDetail thành JSON
   Map<String, dynamic> toJson() => _$TaskDetailToJson(this);

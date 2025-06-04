@@ -48,7 +48,15 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   // Bottom navigation
   BottomNavItem _currentNavItem = BottomNavItem.projects;
 
-  // Kiểm soát trạng thái tìm kiếm nhân viên
+  // Danh sách bottom nav bar
+  final List<BottomNavItem> _navItems = [
+    BottomNavItem.home,
+    BottomNavItem.projects,
+    BottomNavItem.tasks,
+    BottomNavItem.profile,
+  ];
+
+  // Kiểm soát trạng thái tìm kiếm nhân_currentNavItem  viên
   final _searchController = TextEditingController();
   List<User> _filteredEmployees = [];
   bool _isSearching = false;
@@ -73,9 +81,10 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
       // Lấy danh sách người dùng từ API
       final usersData = await api.getUsers();
-      
+
       // Lọc ra những người dùng có role là employee (role_id = 3)
-      final employeeUsers = usersData.where((user) => user['role_id'] == 3).toList();
+      final employeeUsers =
+          usersData.where((user) => user['role_id'] == 3).toList();
 
       setState(() {
         _employees = employeeUsers.map((e) => User.fromMap(e)).toList();
@@ -236,14 +245,16 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
               'is_leader': true
             },
             // Các nhân viên được chọn
-            ..._selectedEmployees.map((employee) => {
-              'user_id': employee.id,
-              'role': 'member',
-              'is_leader': _leaderId == employee.id
-            }).toList()
+            ..._selectedEmployees
+                .map((employee) => {
+                      'user_id': employee.id,
+                      'role': 'member',
+                      'is_leader': _leaderId == employee.id
+                    })
+                .toList()
           ]
         };
-        
+
         // Gọi API để tạo dự án mới
         final createdProject = await api.createProject(projectData);
 
@@ -290,6 +301,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       bottomNavigationBar: BottomNavBarWidget(
         currentItem: _currentNavItem,
         onItemSelected: _handleNavItemSelected,
+        items: _navItems,
       ),
     );
   }

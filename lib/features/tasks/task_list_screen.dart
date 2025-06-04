@@ -29,11 +29,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
     try {
       // Sử dụng ApiService để lấy danh sách tasks
       final api = ApiService.instance;
-      final tasksData = await api.getTasks();
-      
+      final tasksData =
+          await api.getTasksByEmployeeId(4); // Giả sử employeeId = 4
+
       // Chuyển đổi từ Map<String, dynamic> sang Task
       final tasks = tasksData.map((data) => Task.fromMap(data)).toList();
-      
+
       setState(() {
         _tasks = tasks;
         _isLoading = false;
@@ -53,7 +54,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
         title: 'New Task ${DateTime.now().millisecondsSinceEpoch}',
         status: 'pending',
         priority: 'medium',
-        projectId: 1,
+        startDate: DateTime.parse('2025-05-31'), // Parse string to DateTime
+        dueDays: 7,
+        endDate: DateTime.parse('2025-05-31')
+            .add(Duration(days: 7)), // Calculate endDate
+        membershipId: 1,
         createdBy: 1,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -62,7 +67,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       // Sử dụng ApiService để tạo task mới
       final api = ApiService.instance;
       await api.createTask(task.toMap());
-      
+
       // Tải lại danh sách tasks
       _loadTasks();
     } catch (e) {

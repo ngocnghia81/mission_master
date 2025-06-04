@@ -5,41 +5,105 @@ import '../../../../lib/utils/json_utils.dart';
 
 /// Handler cho API quản lý nhiệm vụ của Employee
 ///
-/// GET /api/employee/tasks - Lấy danh sách nhiệm vụ được giao cho employee
-/// PUT /api/employee/tasks/:id/status - Cập nhật trạng thái nhiệm vụ
+/// GET /api/employee/tasks?employee_id=4 - Lấy danh sách nhiệm vụ được giao
 Future<Response> onRequest(RequestContext context) async {
-  // Lấy DatabaseService từ provider
   final db = context.read<DatabaseService>();
-  
-  // Kiểm tra quyền employee (trong thực tế sẽ lấy từ JWT token)
-  // final user = context.read<User>();
-  
-  // Giả sử employeeId = 3 cho ví dụ
-  final employeeId = 3;
-  
+
   switch (context.request.method) {
     case HttpMethod.get:
       try {
-        // Lấy danh sách nhiệm vụ được giao cho employee thông qua project_memberships
-        final tasks = await db.query(
-          '''
-          SELECT t.* 
-          FROM tasks t
-          JOIN project_memberships pm ON t.membership_id = pm.id
-          WHERE pm.user_id = @employeeId
-          ''',
-          {'employeeId': employeeId},
-        );
-        // Chuyển đổi DateTime thành chuỗi trước khi trả về JSON
-        final jsonTasks = JsonUtils.convertListToJson(tasks);
-        return Response.json(body: jsonTasks);
+        final employeeIdStr =
+            context.request.uri.queryParameters['employee_id'];
+        final projectIdStr = context.request.uri.queryParameters['project_id'];
+
+        // Kiểm tra nếu có project_id thì lấy nhiệm vụ theo project
+        if (projectIdStr != null) {
+          // Truy vấn theo project_id
+          final projectId = int.tryParse(projectIdStr);
+          if (projectId == null) {
+            return Response.json(
+              body: {'error': 'Invalid project_id'},
+              statusCode: HttpStatus.badRequest,
+            );
+          }
+
+          final tasks = await db.query(
+            '''
+            SELECT t.*, t.start_date, t.due_days
+            FROM tasks t
+            JOIN project_memberships pm ON t.membership_id = pm.id
+            JOIN projects p ON pm.project_id = p.id
+            WHERE p.id = @projectId
+            ''',
+            {'projectId': projectId},
+          );
+
+          // Tính toán ngày hoàn thành
+          for (final task in tasks) {
+            if (task['completed_date'] == null) {
+              final DateTime? startDate = task['start_date'] as DateTime?;
+              final int dueDays = task['due_days'] as int? ?? 0;
+              if (startDate != null) {
+                final computedDate = startDate.add(Duration(days: dueDays));
+                task['completed_date'] = computedDate.toIso8601String();
+              }
+            }
+          }
+
+          final jsonTasks = JsonUtils.convertListToJson(tasks);
+          return Response.json(body: jsonTasks);
+        }
+
+        if (employeeIdStr == null) {
+          return Response.json(
+            body: {'error': 'Missing employee_id parameter'},
+            statusCode: HttpStatus.badRequest,
+          );
+        } else {
+          // Kiểm tra nếu employee_id là rỗng
+          if (employeeIdStr == null) {
+            return Response.json(
+              body: {'error': 'Invalid employee_id'},
+              statusCode: HttpStatus.badRequest,
+            );
+          } else {
+            final employeeId = int.tryParse(employeeIdStr);
+
+            // Lấy danh sách nhiệm vụ + ngày bắt đầu + số ngày hết hạn
+            final tasks = await db.query(
+              '''
+              SELECT t.*, t.start_date, t.due_days
+              FROM tasks t
+              JOIN project_memberships pm ON t.membership_id = pm.id
+              WHERE pm.user_id = @employeeId
+              ''',
+              {'employeeId': employeeId},
+            );
+
+            // Tính toán completed_date nếu đang null
+            for (final task in tasks) {
+              if (task['completed_date'] == null) {
+                final DateTime? startDate = task['start_date'] as DateTime?;
+                final int dueDays = task['due_days'] as int? ?? 0;
+
+                if (startDate != null) {
+                  final computedDate = startDate.add(Duration(days: dueDays));
+                  task['completed_date'] = computedDate.toIso8601String();
+                }
+              }
+            }
+
+            final jsonTasks = JsonUtils.convertListToJson(tasks);
+            return Response.json(body: jsonTasks);
+          }
+        }
       } catch (e) {
         return Response.json(
-          body: {'error': e.toString()},
+          body: {'error': 'Internal server error: ${e.toString()}'},
           statusCode: HttpStatus.internalServerError,
         );
       }
-    
+
     default:
       return Response(statusCode: HttpStatus.methodNotAllowed);
   }

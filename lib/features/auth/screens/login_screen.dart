@@ -4,6 +4,10 @@ import 'package:mission_master/features/home/screens/calendar_task_screen.dart';
 import 'package:mission_master/services/api_service.dart';
 import 'package:mission_master/core/models/user.dart';
 
+//providers
+import 'package:provider/provider.dart';
+import 'package:mission_master/emp_providers/user_provider.dart';
+
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -46,7 +50,22 @@ class _LoginScreenState extends State<LoginScreen> {
         // TODO: Lưu thông tin người dùng để sử dụng trong các màn hình khác
         
         // Đăng nhập thành công, chuyển đến màn hình chính
-        Navigator.pushReplacementNamed(context, '/home');
+        //Navigator.pushReplacementNamed(context, '/home'); -- của Nghĩa
+        
+        /// ------- Tải thông tin về User lên toàn cục  ------- ///
+        final int userId = userData['id'];
+
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        userProvider.setUserId(userId);  // Cập nhật userId để các ProxyProvider biết
+        await userProvider.init(userId);
+        // Chuyển đến màn hình chính, truyền userId để route xử lý
+        Navigator.pushReplacementNamed(
+          context,
+          '/home_employee',
+          arguments: {'userId': userId},
+        );
+        /// ================================== ///
+
       } catch (e) {
         setState(() {
           _errorMessage = 'Lỗi đăng nhập: $e';

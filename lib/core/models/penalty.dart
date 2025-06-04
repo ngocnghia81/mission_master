@@ -11,7 +11,6 @@ class Penalty {
   final int taskId;
   final double amount;
   final String reason;
-  final int daysOverdue;
   final bool isPaid;
   final String createdAt;
 
@@ -20,13 +19,13 @@ class Penalty {
     required this.taskId,
     required this.amount,
     required this.reason,
-    required this.daysOverdue,
     required this.isPaid,
     required this.createdAt,
   });
 
   // Từ JSON thành Penalty
-  factory Penalty.fromJson(Map<String, dynamic> json) => _$PenaltyFromJson(json);
+  factory Penalty.fromJson(Map<String, dynamic> json) =>
+      _$PenaltyFromJson(json);
 
   // Từ Penalty thành JSON
   Map<String, dynamic> toJson() => _$PenaltyToJson(this);
@@ -38,7 +37,6 @@ class Penalty {
       taskId: map['task_id'] as int,
       amount: map['amount'] as double,
       reason: map['reason'] as String,
-      daysOverdue: map['days_overdue'] as int,
       isPaid: map['is_paid'] as bool,
       createdAt: map['created_at'] as String,
     );
@@ -51,7 +49,6 @@ class Penalty {
       'task_id': taskId,
       'amount': amount,
       'reason': reason,
-      'days_overdue': daysOverdue,
       'is_paid': isPaid,
       'created_at': createdAt,
     };
@@ -72,7 +69,6 @@ class Penalty {
       taskId: taskId ?? this.taskId,
       amount: amount ?? this.amount,
       reason: reason ?? this.reason,
-      daysOverdue: daysOverdue ?? this.daysOverdue,
       isPaid: isPaid ?? this.isPaid,
       createdAt: createdAt ?? this.createdAt,
     );
