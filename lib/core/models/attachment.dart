@@ -37,7 +37,11 @@ class Attachment {
       filePath: map['file_path'] as String,
       fileType: map['file_type'] as String,
       projectId: map['project_id'] as int,
+<<<<<<< HEAD
       taskDetailId: map['task_id'] as int?,
+=======
+      taskDetailId: map['task_detail_id'] as int?,
+>>>>>>> develop
       createdAt: map['created_at'] as String,
     );
   }
@@ -50,7 +54,11 @@ class Attachment {
       'file_path': filePath,
       'file_type': fileType,
       'project_id': projectId,
+<<<<<<< HEAD
       if (taskDetailId != null) 'task_detail_id': taskDetailId,
+=======
+      'task_detail_id': taskDetailId,
+>>>>>>> develop
       'created_at': createdAt,
     };
   }

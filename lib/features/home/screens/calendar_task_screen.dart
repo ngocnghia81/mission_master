@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:mission_master/core/theme/app_colors.dart';
 import 'package:mission_master/shared/widgets/app_bar_widget.dart';
 import 'package:mission_master/shared/widgets/bottom_nav_bar.dart';
+import 'package:mission_master/shared/widgets/app_drawer.dart';
 
 class CalendarTaskScreen extends StatefulWidget {
   @override
@@ -82,13 +83,20 @@ class _CalendarTaskScreenState extends State<CalendarTaskScreen> {
     // }
   }
 
+  void _handleLogout() {
+    // Xử lý đăng xuất
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7F8),
+      drawer: AppDrawer(onLogout: _handleLogout),
       appBar: AppBarWidget(
         title: 'calendar_task_screen.dart',
         showBackButton: false,
+        showDrawerButton: true,
       ),
       body: Column(
         children: [

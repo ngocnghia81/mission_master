@@ -225,6 +225,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                         ),
                                       ),
                                       Text(
+<<<<<<< HEAD
                                         task.completedDate != null
                                             ? DateFormat('dd/MM/yyyy')
                                                 .format(task.completedDate!)
@@ -234,6 +235,16 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                           color: task.completedDate != null &&
                                                   task.completedDate!
                                                       .isBefore(DateTime.now())
+=======
+                                        // Tính ngày đến hạn từ dueDays và ngày bắt đầu
+                                        task.createdAt.add(Duration(days: task.dueDays)).toString() != null
+                                            ? DateFormat('dd/MM/yyyy')
+                                                .format(task.createdAt.add(Duration(days: task.dueDays)))
+                                            : 'Không có',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: task.createdAt.add(Duration(days: task.dueDays)).isBefore(DateTime.now())
+>>>>>>> develop
                                               ? Colors.red
                                               : null,
                                         ),
@@ -278,7 +289,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                         ),
                                       ),
                                       Text(
+<<<<<<< HEAD
                                         'ID: ${task.membershipId}',
+=======
+                                        'ID: ${task.membershipId}', // Sử dụng membershipId thay vì projectId
+>>>>>>> develop
                                         style: TextStyle(
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -318,10 +333,10 @@ class _TaskListScreenState extends State<TaskListScreen> {
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
-  bool _isPastDue(String dueDate) {
-    final date = DateTime.parse(dueDate);
+  bool _isPastDue(DateTime startDate, int dueDays) {
+    final dueDate = startDate.add(Duration(days: dueDays));
     final now = DateTime.now();
-    return date.isBefore(now);
+    return dueDate.isBefore(now);
   }
 
   String _getStatusDisplayName(String status) {

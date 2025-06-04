@@ -6,6 +6,7 @@ class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final VoidCallback? onBackPressed;
   final List<Widget>? actions;
+  final bool showDrawerButton;
 
   const AppBarWidget({
     Key? key,
@@ -13,6 +14,7 @@ class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
     this.showBackButton = true,
     this.onBackPressed,
     this.actions,
+    this.showDrawerButton = true,
   }) : super(key: key);
 
   @override
@@ -30,14 +32,15 @@ class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
               ),
               onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
             )
-          : IconButton(
-              icon: Image.asset(
-                'assets/images/arrow_left.png',
-                width: 24,
-                height: 24,
-              ),
-              onPressed: () {},
-            ),
+          : (showDrawerButton
+              ? IconButton(
+                  icon: Icon(
+                    Icons.menu,
+                    color: AppColors.primaryMedium,
+                  ),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                )
+              : null),
       title: Text(
         title,
         style: TextStyle(

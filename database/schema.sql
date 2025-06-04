@@ -80,7 +80,7 @@ CREATE TABLE attachments (
     file_path TEXT NOT NULL,
     file_type TEXT NOT NULL,
     project_id INTEGER NOT NULL REFERENCES projects(id),
-    task_id INTEGER REFERENCES tasks(id),
+    task_detail_id INTEGER REFERENCES task_details(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -137,7 +137,7 @@ CREATE INDEX idx_project_memberships_project_id ON project_memberships(project_i
 CREATE INDEX idx_comments_task_id ON comments(task_id);
 CREATE INDEX idx_comments_user_id ON comments(user_id);
 CREATE INDEX idx_attachments_project_id ON attachments(project_id);
-CREATE INDEX idx_attachments_task_id ON attachments(task_id);
+CREATE INDEX idx_attachments_task_detail_id ON attachments(task_detail_id);
 CREATE INDEX idx_evaluations_task_id ON evaluations(task_id);
 CREATE INDEX idx_penalties_task_id ON penalties(task_id);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);

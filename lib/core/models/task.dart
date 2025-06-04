@@ -48,13 +48,17 @@ class Task {
       'start_date': startDate?.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
       'due_days': dueDays,
-      'completed_date': completedDate?.toIso8601String(),
+      if (completedDate != null) 'completed_date': completedDate!.toIso8601String(),
       'assigned_to': assignedTo,
       'created_by': createdBy,
       'membership_id': membershipId,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+<<<<<<< HEAD
       if (deletedAt != null) 'deleted_at': deletedAt?.toIso8601String(),
+=======
+      if (deletedAt != null) 'deleted_at': deletedAt!.toIso8601String(),
+>>>>>>> develop
     };
   }
 

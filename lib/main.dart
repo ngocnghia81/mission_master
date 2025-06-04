@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'dart:io';
 import 'package:provider/provider.dart';
 
 // Page
 import 'package:mission_master/features/home/screens/employee_home_screen.dart';
+=======
+import 'package:mission_master/features/admin/screens/admin_home_screen.dart';
+import 'package:mission_master/features/admin/screens/create_manager_screen.dart';
+import 'package:mission_master/features/admin/screens/employee_detail_screen.dart';
+import 'package:mission_master/features/admin/screens/notification_screen.dart';
+import 'package:mission_master/features/admin/screens/profile_screen.dart';
+>>>>>>> develop
 import 'package:mission_master/features/auth/screens/login_screen.dart';
 import 'package:mission_master/features/auth/screens/register_screen.dart';
 import 'package:mission_master/features/home/screens/calendar_task_screen.dart';
 import 'package:mission_master/features/manager/screens/create_project_screen.dart';
 import 'package:mission_master/features/tasks/screens/task_list_screen.dart';
 import 'package:mission_master/features/projects/screens/project_list_screen.dart';
+import 'package:mission_master/core/models/user.dart';
 
 // Providers
 import 'package:mission_master/emp_providers/user_provider.dart';
@@ -77,6 +86,35 @@ class MyApp extends StatelessWidget {
         },
         '/tasks': (context) => const TaskListScreen(),
         '/projects': (context) => const ProjectListScreen(),
+        '/admin': (context) => const AdminHomeScreen(),
+        '/admin/profile': (context) => const ProfileScreen(),
+        '/admin/dashboard': (context) => const AdminHomeScreen(),
+        '/admin/notifications': (context) => const AdminNotificationScreen(),
+        '/admin/create_manager': (context) => const CreateManagerScreen(),
+      },
+      // Handle route generation based on user role
+      onGenerateRoute: (settings) {
+        if (settings.name == '/role_redirect') {
+          // Extract the user argument
+          final args = settings.arguments as Map<String, dynamic>;
+          final user = args['user'] as User;
+
+          // Redirect based on user role
+          if (user.isAdmin) {
+            return MaterialPageRoute(
+              builder: (context) => const AdminHomeScreen(),
+            );
+          } else if (user.isManager) {
+            return MaterialPageRoute(
+              builder: (context) => const ProjectListScreen(),
+            );
+          } else {
+            return MaterialPageRoute(
+              builder: (context) => CalendarTaskScreen(),
+            );
+          }
+        }
+        return null;
       },
     );
   }

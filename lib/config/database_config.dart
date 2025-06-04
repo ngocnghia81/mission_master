@@ -21,5 +21,5 @@ class DatabaseConfig {
   static const int port = 5432;
   static const String database = 'mission_master';
   static const String username = 'postgres';
-  static const String password = 'postgres';
+  static const String password = '';
 }

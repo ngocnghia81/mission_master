@@ -37,41 +37,64 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         // Sử dụng API đăng nhập mới
         final api = ApiService.instance;
+        print('Đang gọi API login với username: ${_usernameController.text}');
         final response = await api.login(
           _usernameController.text,
           _passwordController.text,
         );
-        
+
         // Xử lý kết quả đăng nhập
+        print('Response đầy đủ: $response');
         final userData = response['user'];
         print('Login successful: $userData');
         
-        // Lưu thông tin người dùng vào bộ nhớ tạm thời (có thể sử dụng SharedPreferences)
-        // TODO: Lưu thông tin người dùng để sử dụng trong các màn hình khác
+        if (userData == null) {
+          setState(() {
+            _errorMessage = 'Không nhận được dữ liệu người dùng từ server';
+            _isLoading = false;
+          });
+          return;
+        }
         
-        // Đăng nhập thành công, chuyển đến màn hình chính
-        //Navigator.pushReplacementNamed(context, '/home'); -- của Nghĩa
-        
-        /// ------- Tải thông tin về User lên toàn cục  ------- ///
-        final int userId = userData['id'];
+        try {
+          // Tạo đối tượng User từ dữ liệu trả về
+          print('Đang tạo User từ JSON: $userData');
+          final user = User.fromJson(userData);
+          print('User đã tạo: ${user.username}, role: ${user.role}');
+          
+          // Lưu thông tin người dùng vào bộ nhớ tạm thời (có thể sử dụng SharedPreferences)
+          // TODO: Lưu thông tin người dùng để sử dụng trong các màn hình khác
 
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        userProvider.setUserId(userId);  // Cập nhật userId để các ProxyProvider biết
-        await userProvider.init(userId);
-        // Chuyển đến màn hình chính, truyền userId để route xử lý
-        Navigator.pushReplacementNamed(
-          context,
-          '/home_employee',
-          arguments: {'userId': userId},
-        );
-        /// ================================== ///
-
+          // Chuyển hướng dựa trên vai trò của người dùng
+          if (user.isAdmin) {
+            print('User có vai trò: ${user.role}');
+            print('isAdmin = ${user.isAdmin}, kiểm tra: ${user.role == "admin"}');
+            print('Chuyển hướng tới trang admin: /admin/dashboard');
+            Navigator.pushReplacementNamed(context, '/admin/dashboard');
+          } else if (user.isManager) {
+            print('User có vai trò: ${user.role}');
+            print('isManager = ${user.isManager}, kiểm tra: ${user.role == "manager"}');
+            print('Chuyển hướng tới trang manager: /projects');
+            Navigator.pushReplacementNamed(context, '/projects');
+          } else {
+            print('User có vai trò: ${user.role}');
+            print('isEmployee = ${user.isEmployee}, kiểm tra: ${user.role == "employee"}');
+            print('Chuyển hướng tới trang employee: /home');
+            Navigator.pushReplacementNamed(context, '/home-employee');
+          }
+        } catch (userError) {
+          print('Error creating user object: $userError');
+          setState(() {
+            _errorMessage = 'Lỗi xử lý dữ liệu người dùng: $userError';
+            _isLoading = false;
+          });
+        }
       } catch (e) {
+        print('Login error: $e');
         setState(() {
-          _errorMessage = 'Lỗi đăng nhập: $e';
+          _errorMessage = 'Lỗi đăng nhập: ${e.toString().contains('timeout') ? 'Kết nối server bị timeout' : e}';
           _isLoading = false;
         });
-        print('Login error: $e');
       }
     }
   }

@@ -13,7 +13,11 @@ class DatabaseConfig {
   static const String username = 'postgres';
 
   /// Password để đăng nhập vào PostgreSQL
+<<<<<<< HEAD
   static const String password = '123456';
+=======
+  static const String password = '5612';
+>>>>>>> develop
 
   /// Số lượng kết nối tối đa trong pool
   static const int maxConnections = 10;

@@ -75,7 +75,7 @@ entity "attachments" as attachments {
   *file_path : TEXT
   *file_type : TEXT
   *project_id : INTEGER <<FK>>
-  task_id : INTEGER <<FK>>
+  task_detail_id : INTEGER <<FK>>
   *created_at : TIMESTAMP
 }
 
@@ -135,8 +135,7 @@ users ||--o{ projects : "lãnh đạo (leader_id)"
 users ||--o{ memberships
 memberships }o--|| projects
 
-' Dự án có nhiều task (1-n)
-projects ||--o{ tasks : "có"
+' Tasks are linked to projects through project_memberships, not directly
 
 ' Mối quan hệ giữa user và task được quản lý thông qua project_memberships
 
@@ -152,8 +151,8 @@ users ||--o{ comments : "tạo"
 ' Dự án có thể có nhiều tệp đính kèm (1-n)
 projects ||--o{ attachments : "có"
 
-' Task có thể có nhiều tệp đính kèm (1-n)
-tasks ||--o{ attachments : "có"
+' Task detail có thể có nhiều tệp đính kèm (1-n)
+task_details ||--o{ attachments : "có"
 
 ' Task có thể có một đánh giá (1-1)
 tasks ||--o| evaluations : "được đánh giá"

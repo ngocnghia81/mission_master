@@ -12,6 +12,7 @@ Task _$TaskFromJson(Map<String, dynamic> json) => Task(
       description: json['description'] as String?,
       status: json['status'] as String,
       priority: json['priority'] as String,
+<<<<<<< HEAD
       startDate: json['startDate'] == null
           ? null
           : DateTime.parse(json['startDate'] as String),
@@ -21,6 +22,11 @@ Task _$TaskFromJson(Map<String, dynamic> json) => Task(
       dueDays: (json['dueDays'] as num).toInt(),
       completedDate: json['completedDate'] == null
           ? null
+=======
+      dueDays: (json['dueDays'] as num).toInt(),
+      completedDate: json['completedDate'] == null
+          ? null
+>>>>>>> develop
           : DateTime.parse(json['completedDate'] as String),
       assignedTo: (json['assignedTo'] as num?)?.toInt(),
       createdBy: (json['createdBy'] as num).toInt(),
@@ -38,8 +44,11 @@ Map<String, dynamic> _$TaskToJson(Task instance) => <String, dynamic>{
       'description': instance.description,
       'status': instance.status,
       'priority': instance.priority,
+<<<<<<< HEAD
       'startDate': instance.startDate?.toIso8601String(),
       'endDate': instance.endDate?.toIso8601String(),
+=======
+>>>>>>> develop
       'dueDays': instance.dueDays,
       'completedDate': instance.completedDate?.toIso8601String(),
       'assignedTo': instance.assignedTo,
